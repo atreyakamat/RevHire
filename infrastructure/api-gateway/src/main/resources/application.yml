@@ -1,0 +1,15 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  # Centralized configuration placeholder
+  # config:
+  #   import: optional:configserver:http://localhost:8888
+
+# Eureka client placeholder
+# eureka:
+#   client:
+#     service-url:
+#       defaultZone: http://localhost:8761/eureka/

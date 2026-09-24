@@ -1,0 +1,19 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: job-service
+  datasource:
+    url: jdbc:mysql://localhost:3308/revhire_job?createDatabaseIfNotExist=true
+    # username: ${DB_USERNAME:root}
+    # password: ${DB_PASSWORD:root}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+# eureka:
+#   client:
+#     service-url:
+#       defaultZone: http://localhost:8761/eureka/
