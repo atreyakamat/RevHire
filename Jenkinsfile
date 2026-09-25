@@ -1,55 +1,90 @@
-// RevHire Microservices CI/CD Pipeline
-// Jenkins Declarative Pipeline Placeholder
-// NOTE: Pipeline implementation will be established during the CI/CD integration phase.
-
-/*
-Planned Pipeline Execution Stages:
-==================================
-1. Checkout
-   - Check out source code from Git repository (dev/main branch triggers).
-
-2. Build
-   - Validate Maven POMs, verify dependencies, and compile modules (Java 21).
-
-3. Unit Tests
-   - Execute service-level unit tests across all microservices and collect test reports.
-
-4. SonarQube
-   - Run SonarQube scanner for static code analysis, test coverage enforcement, and quality gates.
-
-5. SCA (Software Composition Analysis)
-   - Scan third-party dependencies for known CVEs and license compliance.
-
-6. Package
-   - Package executable Spring Boot JAR artifacts for deployment candidates.
-
-7. Docker Build
-   - Build multi-arch container images for each microservice and infrastructure component.
-
-8. Container Scan
-   - Execute vulnerability scanning on built container images (e.g., Trivy / Clair).
-
-9. Docker Registry Push
-   - Push validated images to secure container registry with semantic version tags.
-
-10. Kubernetes Deployment
-    - Deploy manifests to target Kubernetes cluster (dev / staging / production environments).
-
-11. Smoke Tests
-    - Perform health checks against service actuators and Eureka discovery registration.
-
-12. Integration / E2E Tests
-    - Execute end-to-end integration and API contract test suites.
-*/
-
 pipeline {
-    agent none
+    agent any
+
+    environment {
+        // Name of the SonarQube Server configured in Jenkins (Manage Jenkins -> System -> SonarQube servers)
+        SONARQUBE_ENV = "${env.SONAR_ENV ?: 'SonarQube'}"
+    }
 
     stages {
-        stage('Placeholder') {
+        stage('Checkout') {
             steps {
-                echo 'RevHire CI/CD pipeline placeholder. Implementation pending CI/CD milestone.'
+                checkout scm
             }
+        }
+
+        stage('Build & Unit Tests') {
+            steps {
+                sh 'mvn clean test'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh 'mvn package -DskipTests'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv(env.SonarQube) {
+                    sh 'mvn sonar:sonar'
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker compose build eureka-server config-server test-service api-gateway'
+            }
+        }
+
+        stage('Docker Compose Integration Test') {
+            steps {
+                sh '''
+                    # Start the infrastructure and integration test services
+                    docker compose up -d eureka-server config-server test-service api-gateway
+
+                    # Poll for healthy status on dependencies and running status on api-gateway (up to 60s)
+                    echo "Waiting for services to become healthy..."
+                    READY=false
+                    for i in $(seq 1 30); do
+                        EUREKA_STATUS=$(docker inspect --format '{{.State.Health.Status}}' eureka-server 2>/dev/null || echo "starting")
+                        CONFIG_STATUS=$(docker inspect --format '{{.State.Health.Status}}' config-server 2>/dev/null || echo "starting")
+                        TEST_STATUS=$(docker inspect --format '{{.State.Health.Status}}' test-service 2>/dev/null || echo "starting")
+                        GATEWAY_RUNNING=$(docker inspect --format '{{.State.Running}}' api-gateway 2>/dev/null || echo "false")
+
+                        if [ "$EUREKA_STATUS" = "healthy" ] && [ "$CONFIG_STATUS" = "healthy" ] && [ "$TEST_STATUS" = "healthy" ] && [ "$GATEWAY_RUNNING" = "true" ]; then
+                            echo "All required services are healthy and running."
+                            READY=true
+                            break
+                        fi
+                        sleep 2
+                    done
+
+                    if [ "$READY" != "true" ]; then
+                        echo "Timed out waiting for services to become healthy."
+                        docker compose ps
+                        exit 1
+                    fi
+
+                    # Verify TEST-SERVICE registration in Eureka
+                    echo "Verifying TEST-SERVICE registration in Eureka..."
+                    curl -f -s http://localhost:8761/eureka/apps/TEST-SERVICE -H "Accept: application/json" | grep -q "TEST-SERVICE"
+
+                    # Verify end-to-end routing through API Gateway
+                    echo "Verifying end-to-end request through API Gateway..."
+                    RESPONSE=$(curl -f -s http://localhost:8080/api/test/ping)
+                    echo "Gateway Response: $RESPONSE"
+                    echo "$RESPONSE" | grep -q '"service":"test-service"'
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker compose down || true'
         }
     }
 }

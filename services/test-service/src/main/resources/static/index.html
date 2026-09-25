@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RevHire Test Service</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #38bdf8;
+            --primary-hover: #0284c7;
+            --secondary: #64748b;
+            --secondary-hover: #475569;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 540px;
+            padding: 32px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--success);
+        }
+
+        .info-grid {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .info-value {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #0f172a;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--secondary-hover);
+        }
+
+        .response-panel {
+            background-color: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 13px;
+            min-height: 90px;
+        }
+
+        .response-header {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .response-content {
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        .response-content.error {
+            color: var(--danger);
+        }
+
+        .res-row {
+            margin-bottom: 4px;
+        }
+
+        .res-label {
+            color: var(--text-muted);
+        }
+
+        .res-val {
+            font-weight: 600;
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <h1>RevHire Test Service</h1>
+            <div class="subtitle">Infrastructure Integration Test</div>
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span>Service is running</span>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Service</span>
+                <span class="info-value">TEST-SERVICE</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Port</span>
+                <span class="info-value">8086</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Eureka</span>
+                <span class="info-value">Connected / Registered</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Config Server</span>
+                <span class="info-value">Connected</span>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="testApi()">Test API</button>
+            <button class="btn-secondary" onclick="testGateway()">Test Gateway</button>
+        </div>
+
+        <div class="response-panel">
+            <div class="response-header" id="responseHeader">Response Panel</div>
+            <div class="response-content" id="responseContent">Click "Test API" or "Test Gateway" to initiate an integration request.</div>
+        </div>
+    </div>
+
+    <script>
+        function showResponse(data, headerText) {
+            document.getElementById('responseHeader').textContent = headerText;
+            const content = document.getElementById('responseContent');
+            content.className = 'response-content';
+            content.innerHTML = `
+                <div class="res-row"><span class="res-label">Service:</span> <span class="res-val">${data.service || '-'}</span></div>
+                <div class="res-row"><span class="res-label">Status:</span> <span class="res-val">${data.status || '-'}</span></div>
+                <div class="res-row"><span class="res-label">Message:</span> <span class="res-val">${data.message || '-'}</span></div>
+            `;
+        }
+
+        function showError(msg, headerText) {
+            document.getElementById('responseHeader').textContent = headerText || 'Request Failed';
+            const content = document.getElementById('responseContent');
+            content.className = 'response-content error';
+            content.textContent = msg;
+        }
+
+        function testApi() {
+            document.getElementById('responseHeader').textContent = 'Testing /api/test/ping...';
+            document.getElementById('responseContent').textContent = 'Sending request...';
+
+            fetch('/api/test/ping')
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                    return res.json();
+                })
+                .then(data => showResponse(data, 'Direct API Response (/api/test/ping)'))
+                .catch(err => showError(err.message, 'API Request Failed'));
+        }
+
+        function testGateway() {
+            document.getElementById('responseHeader').textContent = 'Testing Gateway route...';
+            document.getElementById('responseContent').textContent = 'Sending request...';
+
+            // If accessed through Gateway or non-8086 port, relative path works directly
+            if (window.location.port !== '8086') {
+                fetch('/api/test/ping')
+                    .then(res => {
+                        if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                        return res.json();
+                    })
+                    .then(data => showResponse(data, 'Gateway Response (via ' + window.location.origin + ')'))
+                    .catch(err => showError(err.message, 'Gateway Request Failed'));
+            } else {
+                // Direct access on port 8086: route to Gateway on port 8080
+                const gatewayUrl = `${window.location.protocol}//${window.location.hostname}:8080/api/test/ping`;
+                fetch(gatewayUrl)
+                    .then(res => {
+                        if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                        return res.json();
+                    })
+                    .then(data => showResponse(data, `Gateway Response (via ${gatewayUrl})`))
+                    .catch(err => showError(`Gateway check failed: ${err.message}. Ensure API Gateway is running on port 8080.`, 'Gateway Request Failed'));
+            }
+        }
+    </script>
+</body>
+</html>
