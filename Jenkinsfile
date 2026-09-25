@@ -26,14 +26,34 @@ pipeline {
                 sh 'mvn package -DskipTests'
             }
         }
-
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${env.SONARQUBE_ENV ?: 'SonarQube'}") {
-                    sh 'mvn sonar:sonar'
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        echo "Checking SonarQube environment..."
+
+                        if [ -n "$SONAR_HOST_URL" ]; then
+                            echo "SONAR_HOST_URL = SET"
+                        else
+                            echo "SONAR_HOST_URL = NOT SET"
+                        fi
+
+                        if [ -n "$SONAR_AUTH_TOKEN" ]; then
+                            echo "SONAR_AUTH_TOKEN = SET"
+                        else
+                            echo "SONAR_AUTH_TOKEN = NOT SET"
+                        fi
+
+                        if [ -n "$SONAR_TOKEN" ]; then
+                            echo "SONAR_TOKEN = SET"
+                        else
+                            echo "SONAR_TOKEN = NOT SET"
+                        fi
+                    '''
                 }
             }
         }
+
 
         stage('Docker Build') {
             steps {
