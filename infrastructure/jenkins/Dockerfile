@@ -8,9 +8,6 @@ RUN update-ca-certificates 2>/dev/null || true
 
 # Install Apache Maven 3.9.x
 COPY bin/apache-maven-3.9.9 /opt/maven
-RUN mv /opt/maven/bin/mvn /opt/maven/bin/mvn.real && \
-    printf '#!/bin/bash\nEXTRA_ARGS=()\nif [ -n "$SONAR_AUTH_TOKEN" ]; then EXTRA_ARGS+=("-Dsonar.token=$SONAR_AUTH_TOKEN"); fi\nif [ -n "$SONAR_HOST_URL" ]; then EXTRA_ARGS+=("-Dsonar.host.url=$SONAR_HOST_URL"); fi\nexec /opt/maven/bin/mvn.real "${EXTRA_ARGS[@]}" "$@"\n' > /opt/maven/bin/mvn && \
-    chmod +x /opt/maven/bin/mvn
 ENV MAVEN_HOME=/opt/maven
 ENV PATH="${MAVEN_HOME}/bin:${PATH}"
 
