@@ -67,3 +67,6 @@ Desktop.ini
 *.bak
 *.swp
 *~
+
+# Jenkins tooling binaries cache
+infrastructure/jenkins/bin/

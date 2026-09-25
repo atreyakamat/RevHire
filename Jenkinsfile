@@ -27,7 +27,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv(env.SonarQube) {
+                withSonarQubeEnv("${env.SONARQUBE_ENV ?: 'SonarQube'}") {
                     sh 'mvn sonar:sonar'
                 }
             }
@@ -70,11 +70,12 @@ pipeline {
 
                     # Verify TEST-SERVICE registration in Eureka
                     echo "Verifying TEST-SERVICE registration in Eureka..."
+                    curl -f -s http://eureka-server:8761/eureka/apps/TEST-SERVICE -H "Accept: application/json" 2>/dev/null | grep -q "TEST-SERVICE" || \
                     curl -f -s http://localhost:8761/eureka/apps/TEST-SERVICE -H "Accept: application/json" | grep -q "TEST-SERVICE"
 
                     # Verify end-to-end routing through API Gateway
                     echo "Verifying end-to-end request through API Gateway..."
-                    RESPONSE=$(curl -f -s http://localhost:8080/api/test/ping)
+                    RESPONSE=$(curl -f -s http://api-gateway:8080/api/test/ping 2>/dev/null || curl -f -s http://localhost:8080/api/test/ping)
                     echo "Gateway Response: $RESPONSE"
                     echo "$RESPONSE" | grep -q '"service":"test-service"'
                 '''

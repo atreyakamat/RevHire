@@ -14,6 +14,8 @@
             --primary-hover: #0284c7;
             --secondary: #64748b;
             --secondary-hover: #475569;
+            --accent: #10b981;
+            --accent-hover: #059669;
             --success: #22c55e;
             --danger: #ef4444;
             --border: #334155;
@@ -42,26 +44,26 @@
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             width: 100%;
-            max-width: 540px;
-            padding: 32px;
+            max-width: 600px;
+            padding: 30px;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         h1 {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
             color: var(--primary);
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .subtitle {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--text-muted);
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .status-badge {
@@ -70,9 +72,9 @@
             gap: 8px;
             background-color: rgba(34, 197, 94, 0.15);
             color: var(--success);
-            padding: 6px 14px;
+            padding: 5px 12px;
             border-radius: 9999px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             border: 1px solid rgba(34, 197, 94, 0.3);
         }
@@ -88,12 +90,12 @@
             background: #0f172a;
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 24px;
+            padding: 12px 16px;
+            margin-bottom: 18px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            font-size: 13px;
+            gap: 10px;
+            font-size: 12px;
         }
 
         .info-item {
@@ -103,7 +105,7 @@
 
         .info-label {
             color: var(--text-muted);
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 2px;
@@ -116,19 +118,19 @@
 
         .button-group {
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 16px;
         }
 
         button {
-            flex: 1;
-            padding: 10px 16px;
+            padding: 8px 12px;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             border: none;
+            white-space: nowrap;
         }
 
         .btn-primary {
@@ -149,13 +151,82 @@
             background-color: var(--secondary-hover);
         }
 
+        .btn-accent {
+            background-color: var(--accent);
+            color: #0f172a;
+        }
+
+        .btn-accent:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .crud-section {
+            border-top: 1px solid var(--border);
+            padding-top: 14px;
+            margin-bottom: 16px;
+        }
+
+        .crud-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .crud-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .crud-input {
+            flex: 2;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 7px 10px;
+            color: var(--text-main);
+            font-size: 12px;
+        }
+
+        .crud-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .crud-input.id-input {
+            flex: 1;
+            max-width: 80px;
+        }
+
+        .btn-crud {
+            background-color: var(--primary);
+            color: #0f172a;
+            padding: 7px 12px;
+            font-size: 12px;
+        }
+
+        .btn-crud.secondary {
+            background-color: var(--secondary);
+            color: #fff;
+        }
+
+        .btn-crud.danger {
+            background-color: var(--danger);
+            color: #fff;
+        }
+
         .response-panel {
             background-color: #0f172a;
             border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 16px;
-            font-size: 13px;
-            min-height: 90px;
+            padding: 14px;
+            font-size: 12px;
+            min-height: 80px;
+            max-height: 220px;
+            overflow-y: auto;
         }
 
         .response-header {
@@ -163,7 +234,7 @@
             text-transform: uppercase;
             color: var(--text-muted);
             letter-spacing: 0.5px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .response-content {
@@ -176,11 +247,12 @@
         }
 
         .res-row {
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .res-label {
             color: var(--text-muted);
+            text-transform: capitalize;
         }
 
         .res-val {
@@ -193,7 +265,7 @@
     <div class="card">
         <div class="header">
             <h1>RevHire Test Service</h1>
-            <div class="subtitle">Infrastructure Integration Test</div>
+            <div class="subtitle">Infrastructure Integration & CRUD Test</div>
             <div class="status-badge">
                 <span class="status-dot"></span>
                 <span>Service is running</span>
@@ -217,29 +289,70 @@
                 <span class="info-label">Config Server</span>
                 <span class="info-value">Connected</span>
             </div>
+            <div class="info-item">
+                <span class="info-label">Database</span>
+                <span class="info-value">revhire_test</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Database Status</span>
+                <span class="info-value" id="dbStatusBadge" style="color: var(--text-muted);">Not Tested</span>
+            </div>
         </div>
 
         <div class="button-group">
             <button class="btn-primary" onclick="testApi()">Test API</button>
             <button class="btn-secondary" onclick="testGateway()">Test Gateway</button>
+            <button class="btn-accent" onclick="testDatabase()">Test Database</button>
+        </div>
+
+        <div class="crud-section">
+            <div class="crud-title">TestRecord CRUD Controls</div>
+            <div class="crud-row">
+                <input type="text" id="recordMessage" placeholder="New message for record..." class="crud-input">
+                <button class="btn-crud" onclick="createRecord()">Create (POST)</button>
+                <button class="btn-crud secondary" onclick="listRecords()">List (GET)</button>
+            </div>
+            <div class="crud-row">
+                <input type="number" id="recordId" placeholder="ID" class="crud-input id-input">
+                <input type="text" id="updateMessage" placeholder="Updated message..." class="crud-input">
+                <button class="btn-crud secondary" onclick="getRecord()">Get</button>
+                <button class="btn-crud secondary" onclick="updateRecord()">Update (PUT)</button>
+                <button class="btn-crud danger" onclick="deleteRecord()">Delete</button>
+            </div>
         </div>
 
         <div class="response-panel">
             <div class="response-header" id="responseHeader">Response Panel</div>
-            <div class="response-content" id="responseContent">Click "Test API" or "Test Gateway" to initiate an integration request.</div>
+            <div class="response-content" id="responseContent">Click an action above to test infrastructure or CRUD endpoints.</div>
         </div>
     </div>
 
     <script>
-        function showResponse(data, headerText) {
+        function showData(data, headerText) {
             document.getElementById('responseHeader').textContent = headerText;
             const content = document.getElementById('responseContent');
             content.className = 'response-content';
-            content.innerHTML = `
-                <div class="res-row"><span class="res-label">Service:</span> <span class="res-val">${data.service || '-'}</span></div>
-                <div class="res-row"><span class="res-label">Status:</span> <span class="res-val">${data.status || '-'}</span></div>
-                <div class="res-row"><span class="res-label">Message:</span> <span class="res-val">${data.message || '-'}</span></div>
-            `;
+            if (Array.isArray(data)) {
+                if (data.length === 0) {
+                    content.textContent = 'No records found (empty list).';
+                    return;
+                }
+                let html = `<div style="margin-bottom: 6px; font-weight: 600;">Total Records: ${data.length}</div>`;
+                data.forEach(item => {
+                    html += `<div style="border-bottom: 1px solid #334155; padding: 4px 0;">
+                        <span class="res-val">#${item.id}</span>: "${item.message}" <span style="font-size:10px; color:var(--text-muted);">${item.createdAt || ''}</span>
+                    </div>`;
+                });
+                content.innerHTML = html;
+            } else if (typeof data === 'object' && data !== null) {
+                let rowsHtml = '';
+                for (const [key, value] of Object.entries(data)) {
+                    rowsHtml += `<div class="res-row"><span class="res-label">${key}:</span> <span class="res-val">${value !== null ? value : '-'}</span></div>`;
+                }
+                content.innerHTML = rowsHtml;
+            } else {
+                content.textContent = String(data);
+            }
         }
 
         function showError(msg, headerText) {
@@ -258,7 +371,7 @@
                     if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
                     return res.json();
                 })
-                .then(data => showResponse(data, 'Direct API Response (/api/test/ping)'))
+                .then(data => showData(data, 'Direct API Response (/api/test/ping)'))
                 .catch(err => showError(err.message, 'API Request Failed'));
         }
 
@@ -266,26 +379,162 @@
             document.getElementById('responseHeader').textContent = 'Testing Gateway route...';
             document.getElementById('responseContent').textContent = 'Sending request...';
 
-            // If accessed through Gateway or non-8086 port, relative path works directly
             if (window.location.port !== '8086') {
                 fetch('/api/test/ping')
                     .then(res => {
                         if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
                         return res.json();
                     })
-                    .then(data => showResponse(data, 'Gateway Response (via ' + window.location.origin + ')'))
+                    .then(data => showData(data, 'Gateway Response (via ' + window.location.origin + ')'))
                     .catch(err => showError(err.message, 'Gateway Request Failed'));
             } else {
-                // Direct access on port 8086: route to Gateway on port 8080
                 const gatewayUrl = `${window.location.protocol}//${window.location.hostname}:8080/api/test/ping`;
                 fetch(gatewayUrl)
                     .then(res => {
                         if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
                         return res.json();
                     })
-                    .then(data => showResponse(data, `Gateway Response (via ${gatewayUrl})`))
+                    .then(data => showData(data, `Gateway Response (via ${gatewayUrl})`))
                     .catch(err => showError(`Gateway check failed: ${err.message}. Ensure API Gateway is running on port 8080.`, 'Gateway Request Failed'));
             }
+        }
+
+        function testDatabase() {
+            document.getElementById('responseHeader').textContent = 'Testing /api/test/db...';
+            document.getElementById('responseContent').textContent = 'Writing and reading record from database...';
+            const badge = document.getElementById('dbStatusBadge');
+            badge.textContent = 'Connecting...';
+            badge.style.color = 'var(--text-muted)';
+
+            fetch('/api/test/db')
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(data => {
+                            badge.textContent = 'Disconnected (DOWN)';
+                            badge.style.color = 'var(--danger)';
+                            showData(data, 'Database Error Response (/api/test/db)');
+                            throw new Error('HTTP ' + res.status + ': ' + (data.error || res.statusText));
+                        }).catch(e => {
+                            badge.textContent = 'Disconnected (DOWN)';
+                            badge.style.color = 'var(--danger)';
+                            if (e.message.startsWith('HTTP')) throw e;
+                            throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                        });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.status === 'UP') {
+                        badge.textContent = 'Connected (UP)';
+                        badge.style.color = 'var(--success)';
+                    } else {
+                        badge.textContent = 'Disconnected (' + (data.status || 'DOWN') + ')';
+                        badge.style.color = 'var(--danger)';
+                    }
+                    showData(data, 'Database Persistence Response (/api/test/db)');
+                })
+                .catch(err => {
+                    badge.textContent = 'Disconnected (DOWN)';
+                    badge.style.color = 'var(--danger)';
+                    showError(err.message, 'Database Request Failed');
+                });
+        }
+
+        function createRecord() {
+            const input = document.getElementById('recordMessage');
+            const message = input.value.trim() || 'Record created from dashboard at ' + new Date().toLocaleTimeString();
+            document.getElementById('responseHeader').textContent = 'Creating record...';
+
+            fetch('/api/test/records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                return res.json();
+            })
+            .then(data => {
+                input.value = '';
+                showData(data, 'Record Created (HTTP 201 Created)');
+            })
+            .catch(err => showError(err.message, 'Create Failed'));
+        }
+
+        function listRecords() {
+            document.getElementById('responseHeader').textContent = 'Fetching all records...';
+            fetch('/api/test/records')
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                return res.json();
+            })
+            .then(data => showData(data, 'All Test Records (HTTP 200)'))
+            .catch(err => showError(err.message, 'Fetch Failed'));
+        }
+
+        function getRecord() {
+            const id = document.getElementById('recordId').value.trim();
+            if (!id) {
+                showError('Please enter a Record ID', 'Validation Error');
+                return;
+            }
+            document.getElementById('responseHeader').textContent = 'Fetching record #' + id + '...';
+            fetch('/api/test/records/' + id)
+            .then(res => {
+                if (res.status === 404) throw new Error('Record #' + id + ' not found (HTTP 404)');
+                if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                return res.json();
+            })
+            .then(data => showData(data, 'Record #' + id + ' (HTTP 200)'))
+            .catch(err => showError(err.message, 'Get Failed'));
+        }
+
+        function updateRecord() {
+            const id = document.getElementById('recordId').value.trim();
+            if (!id) {
+                showError('Please enter a Record ID', 'Validation Error');
+                return;
+            }
+            const updateMsg = document.getElementById('updateMessage').value.trim();
+            if (!updateMsg) {
+                showError('Please enter an update message', 'Validation Error');
+                return;
+            }
+            document.getElementById('responseHeader').textContent = 'Updating record #' + id + '...';
+            fetch('/api/test/records/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: updateMsg })
+            })
+            .then(res => {
+                if (res.status === 404) throw new Error('Record #' + id + ' not found (HTTP 404)');
+                if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                return res.json();
+            })
+            .then(data => {
+                document.getElementById('updateMessage').value = '';
+                showData(data, 'Record #' + id + ' Updated (HTTP 200)');
+            })
+            .catch(err => showError(err.message, 'Update Failed'));
+        }
+
+        function deleteRecord() {
+            const id = document.getElementById('recordId').value.trim();
+            if (!id) {
+                showError('Please enter a Record ID', 'Validation Error');
+                return;
+            }
+            document.getElementById('responseHeader').textContent = 'Deleting record #' + id + '...';
+            fetch('/api/test/records/' + id, {
+                method: 'DELETE'
+            })
+            .then(res => {
+                if (res.status === 404) throw new Error('Record #' + id + ' not found (HTTP 404)');
+                if (!res.ok && res.status !== 204) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+                document.getElementById('recordId').value = '';
+                showData({ id: id, status: 'DELETED', httpStatus: 204 }, 'Record #' + id + ' Deleted (HTTP 204 No Content)');
+            })
+            .catch(err => showError(err.message, 'Delete Failed'));
         }
     </script>
 </body>

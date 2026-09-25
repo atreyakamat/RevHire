@@ -25,10 +25,8 @@
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
 
         <!-- SonarQube Configuration -->
-        <sonar.host.url>http://localhost:9191</sonar.host.url>
         <sonar.projectKey>revhire-microservices</sonar.projectKey>
         <sonar.projectName>RevHire Microservices</sonar.projectName>
-        <sonar.token>squ_revhire_ci_token_88009191</sonar.token>
         <sonar.java.binaries>**/target/classes</sonar.java.binaries>
     </properties>
 
