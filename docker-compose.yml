@@ -1,38 +1,118 @@
-# RevHire Microservices - Local Development Orchestration Placeholder
-#
-# NOTE: This file establishes the target local topology for the RevHire platform.
-# The complete service definitions will be finalized as services are implemented.
-#
-# Planned Services Topology:
-# -------------------------------------------------------------
-# Infrastructure:
-#   - eureka-server: Service Discovery (Port: 8761)
-#   - config-server: Centralized Configuration (Port: 8888)
-#   - api-gateway: Spring Cloud Gateway (Port: 8080)
-#
-# Databases (Database-per-service architecture):
-#   - mysql-user: MySQL database for User Service (Port: 3306)
-#   - mysql-resume: MySQL database for Resume Service (Port: 3307)
-#   - mysql-job: MySQL database for Job Service (Port: 3308)
-#   - mysql-application: MySQL database for Application Service (Port: 3309)
-#   - mysql-notification: MySQL database for Notification Service (Port: 3310)
-#
-# Business Microservices:
-#   - user-service: User & Authentication Service (Port: 8081)
-#   - resume-service: Resume Service (Port: 8082)
-#   - job-service: Job Management Service (Port: 8083)
-#   - application-service: Application Tracking Service (Port: 8084)
-#   - notification-service: Notification Dispatcher (Port: 8085)
-#
-# Frontend:
-#   - revhire-angular: Angular Web UI (Port: 4200)
-# -------------------------------------------------------------
-
-version: '3.8'
-
 services:
-  # Placeholder service to maintain valid docker-compose syntax
-  revhire-placeholder:
-    image: alpine:latest
-    container_name: revhire-placeholder
-    command: ["echo", "RevHire Microservices environment placeholder. Full stack deployment pending service implementations."]
+  eureka-server:
+    build:
+      context: ./infrastructure/eureka-server
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    hostname: eureka-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8761/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      revhire-network:
+        aliases:
+          - eurekaserver
+          - eureka-server
+
+  config-server:
+    build:
+      context: ./infrastructure/config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    hostname: config-server
+    ports:
+      - "8800:8800"
+    volumes:
+      - ./config:/app/config:ro
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8800/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      revhire-network:
+        aliases:
+          - configserver
+          - config-server
+
+  test-service:
+    build:
+      context: ./services/test-service
+      dockerfile: Dockerfile
+    container_name: test-service
+    hostname: test-service
+    ports:
+      - "8086:8086"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_test?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=atreya
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8086/api/test/ping || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      revhire-network:
+        aliases:
+          - testservice
+          - test-service
+
+  api-gateway:
+    build:
+      context: ./infrastructure/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    hostname: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      test-service:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      revhire-network:
+        aliases:
+          - apigateway
+          - api-gateway
+
+networks:
+  revhire-network:
+    driver: bridge
