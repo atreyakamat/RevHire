@@ -332,24 +332,62 @@
             document.getElementById('responseHeader').textContent = headerText;
             const content = document.getElementById('responseContent');
             content.className = 'response-content';
+            content.innerHTML = '';
+
             if (Array.isArray(data)) {
                 if (data.length === 0) {
                     content.textContent = 'No records found (empty list).';
                     return;
                 }
-                let html = `<div style="margin-bottom: 6px; font-weight: 600;">Total Records: ${data.length}</div>`;
+                const countDiv = document.createElement('div');
+                countDiv.style.marginBottom = '6px';
+                countDiv.style.fontWeight = '600';
+                countDiv.textContent = `Total Records: ${data.length}`;
+                content.appendChild(countDiv);
+
                 data.forEach(item => {
-                    html += `<div style="border-bottom: 1px solid #334155; padding: 4px 0;">
-                        <span class="res-val">#${item.id}</span>: "${item.message}" <span style="font-size:10px; color:var(--text-muted);">${item.createdAt || ''}</span>
-                    </div>`;
+                    const row = document.createElement('div');
+                    row.style.borderBottom = '1px solid #334155';
+                    row.style.padding = '4px 0';
+
+                    const valSpan = document.createElement('span');
+                    valSpan.className = 'res-val';
+                    valSpan.textContent = `#${item.id}`;
+                    row.appendChild(valSpan);
+
+                    row.appendChild(document.createTextNode(': "'));
+
+                    const msgSpan = document.createElement('span');
+                    msgSpan.textContent = item.message !== null && item.message !== undefined ? item.message : '';
+                    row.appendChild(msgSpan);
+
+                    row.appendChild(document.createTextNode('" '));
+
+                    const dateSpan = document.createElement('span');
+                    dateSpan.style.fontSize = '10px';
+                    dateSpan.style.color = 'var(--text-muted)';
+                    dateSpan.textContent = item.createdAt || '';
+                    row.appendChild(dateSpan);
+
+                    content.appendChild(row);
                 });
-                content.innerHTML = html;
             } else if (typeof data === 'object' && data !== null) {
-                let rowsHtml = '';
                 for (const [key, value] of Object.entries(data)) {
-                    rowsHtml += `<div class="res-row"><span class="res-label">${key}:</span> <span class="res-val">${value !== null ? value : '-'}</span></div>`;
+                    const row = document.createElement('div');
+                    row.className = 'res-row';
+
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'res-label';
+                    labelSpan.textContent = `${key}: `;
+                    row.appendChild(labelSpan);
+
+                    const valSpan = document.createElement('span');
+                    valSpan.className = 'res-val';
+                    valSpan.textContent = value !== null && value !== undefined ? String(value) : '-';
+                    row.appendChild(valSpan);
+
+                    content.appendChild(row);
                 }
-                content.innerHTML = rowsHtml;
             } else {
                 content.textContent = String(data);
             }

@@ -4,6 +4,8 @@ pipeline {
     environment {
         // Name of the SonarQube Server configured in Jenkins (Manage Jenkins -> System -> SonarQube servers)
         SONARQUBE_ENV = "${env.SONAR_ENV ?: 'SonarQube'}"
+        // Database credentials injected via Jenkins environment / credentials if configured
+        REVHIRE_DB_PASSWORD = "${env.REVHIRE_DB_PASSWORD ?: ''}"
     }
 
     stages {

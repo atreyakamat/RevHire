@@ -58,7 +58,15 @@ while (my @ready = $select->can_read) {
                 close($fh);
                 close($peer) if $peer;
             } else {
-                syswrite($peer, $buffer) if $peer;
+                if ($peer) {
+                    my $offset = 0;
+                    my $len = length($buffer);
+                    while ($offset < $len) {
+                        my $written = syswrite($peer, $buffer, $len - $offset, $offset);
+                        last unless defined $written && $written > 0;
+                        $offset += $written;
+                    }
+                }
             }
         }
     }

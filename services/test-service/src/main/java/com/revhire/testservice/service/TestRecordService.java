@@ -30,6 +30,9 @@ public class TestRecordService {
 
     public TestRecord createRecord(TestRecord record) {
         record.setId(null);
+        if (record.getCreatedAt() == null) {
+            record.setCreatedAt(java.time.LocalDateTime.now());
+        }
         return testRecordRepository.save(record);
     }
 
