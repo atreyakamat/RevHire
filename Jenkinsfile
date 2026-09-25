@@ -52,9 +52,9 @@ pipeline {
                         EUREKA_STATUS=$(docker inspect --format '{{.State.Health.Status}}' eureka-server 2>/dev/null || echo "starting")
                         CONFIG_STATUS=$(docker inspect --format '{{.State.Health.Status}}' config-server 2>/dev/null || echo "starting")
                         TEST_STATUS=$(docker inspect --format '{{.State.Health.Status}}' test-service 2>/dev/null || echo "starting")
-                        GATEWAY_RUNNING=$(docker inspect --format '{{.State.Running}}' api-gateway 2>/dev/null || echo "false")
+                        GATEWAY_STATUS=$(docker inspect --format '{{.State.Health.Status}}' api-gateway 2>/dev/null || echo "starting")
 
-                        if [ "$EUREKA_STATUS" = "healthy" ] && [ "$CONFIG_STATUS" = "healthy" ] && [ "$TEST_STATUS" = "healthy" ] && [ "$GATEWAY_RUNNING" = "true" ]; then
+                        if [ "$EUREKA_STATUS" = "healthy" ] && [ "$CONFIG_STATUS" = "healthy" ] && [ "$TEST_STATUS" = "healthy" ] && [ "$GATEWAY_STATUS" = "healthy" ]; then
                             echo "All required services are healthy and running."
                             READY=true
                             break
@@ -75,7 +75,14 @@ pipeline {
 
                     # Verify end-to-end routing through API Gateway
                     echo "Verifying end-to-end request through API Gateway..."
-                    RESPONSE=$(curl -f -s http://api-gateway:8080/api/test/ping 2>/dev/null || curl -f -s http://localhost:8080/api/test/ping)
+                    RESPONSE=""
+                    for j in $(seq 1 15); do
+                        RESPONSE=$(curl -f -s http://api-gateway:8080/api/test/ping 2>/dev/null || curl -f -s http://localhost:8080/api/test/ping 2>/dev/null || echo "")
+                        if echo "$RESPONSE" | grep -q '"service":"test-service"'; then
+                            break
+                        fi
+                        sleep 2
+                    done
                     echo "Gateway Response: $RESPONSE"
                     echo "$RESPONSE" | grep -q '"service":"test-service"'
                 '''
@@ -85,7 +92,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker compose down || true'
+            sh 'docker compose rm -f -s || true'
         }
     }
 }
