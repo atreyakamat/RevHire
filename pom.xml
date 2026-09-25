@@ -41,6 +41,7 @@
         <module>infrastructure/api-gateway</module>
         <module>infrastructure/eureka-server</module>
         <module>infrastructure/config-server</module>
+        <module>services/test-service</module>
     </modules>
 
     <dependencyManagement>
