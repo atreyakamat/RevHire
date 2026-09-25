@@ -7,7 +7,7 @@
 # -------------------------------------------------------------
 # Infrastructure:
 #   - eureka-server: Service Discovery (Port: 8761)
-#   - config-server: Centralized Configuration (Port: 8888)
+#   - config-server: Centralized Configuration (Port: 8800)
 #   - api-gateway: Spring Cloud Gateway (Port: 8080)
 #
 # Databases (Database-per-service architecture):

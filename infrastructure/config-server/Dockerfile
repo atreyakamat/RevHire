@@ -1,7 +1,11 @@
-# Placeholder Dockerfile for revhire-config-server
 FROM eclipse-temurin:21-jre-alpine
+
 WORKDIR /app
+
 ARG JAR_FILE=target/*.jar
 COPY ${JAR_FILE} app.jar
-EXPOSE 8888
+
+# Expose Config Server port (8800)
+EXPOSE 8800
+
 ENTRYPOINT ["java", "-jar", "app.jar"]
