@@ -1,24 +1,4 @@
-
 services:
-  config-server:
-    build:
-      context: ./infrastructure/config-server
-      dockerfile: Dockerfile
-    container_name: config-server
-    hostname: configserver
-    ports:
-      - "8800:8800"
-    volumes:
-      - ./config:/app/config:ro
-    environment:
-      - SPRING_PROFILES_ACTIVE=native
-      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-    networks:
-      revhire-network:
-        aliases:
-          - configserver
-
   eureka-server:
     build:
       context: ./infrastructure/eureka-server
@@ -27,14 +7,48 @@ services:
     hostname: eureka-server
     ports:
       - "8761:8761"
-    depends_on:
-      - config-server
     environment:
-      - CONFIG_SERVER_URL=http://configserver:8800
+      - CONFIG_SERVER_URL=http://config-server:8800
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8761/ || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     networks:
       revhire-network:
         aliases:
           - eurekaserver
+          - eureka-server
+
+  config-server:
+    build:
+      context: ./infrastructure/config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    hostname: config-server
+    ports:
+      - "8800:8800"
+    volumes:
+      - ./config:/app/config:ro
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8800/user-service/local || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      revhire-network:
+        aliases:
+          - configserver
+          - config-server
 
   api-gateway:
     build:
@@ -45,16 +59,20 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - config-server
-      - eureka-server
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
     environment:
-      - CONFIG_SERVER_URL=http://configserver:8800
+      - CONFIG_SERVER_URL=http://config-server:8800
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    entrypoint: ["sh", "-c", "sleep 5 && exec java -jar app.jar"]
     networks:
       revhire-network:
         aliases:
           - apigateway
+          - api-gateway
 
 networks:
   revhire-network:
