@@ -1,5 +1,6 @@
 package com.revhire.testservice.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -9,11 +10,14 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "test_records")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TestRecord {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private String name;
 
     private String message;
 
@@ -22,7 +26,19 @@ public class TestRecord {
     public TestRecord() {
     }
 
+    public TestRecord(String name, String message) {
+        this.name = name;
+        this.message = message;
+    }
+
     public TestRecord(String message, LocalDateTime createdAt) {
+        this.name = "Test Record";
+        this.message = message;
+        this.createdAt = createdAt;
+    }
+
+    public TestRecord(String name, String message, LocalDateTime createdAt) {
+        this.name = name;
         this.message = message;
         this.createdAt = createdAt;
     }
@@ -33,6 +49,14 @@ public class TestRecord {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getMessage() {
