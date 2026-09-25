@@ -4,11 +4,13 @@ server:
 spring:
   application:
     name: eureka-server
+  config:
+    import: "optional:configserver:http://localhost:8888"
 
-# Minimal Eureka Server structural config
 eureka:
   instance:
     hostname: localhost
+    prefer-ip-address: true
   client:
     register-with-eureka: false
     fetch-registry: false

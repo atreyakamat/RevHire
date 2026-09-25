@@ -10,9 +10,13 @@ spring:
     config:
       server:
         native:
-          search-locations: classpath:/config,file:../../config/{profile}
+          search-locations:
+            - file:./config/{profile}
+            - file:../../config/{profile}
 
-# eureka:
-#   client:
-#     service-url:
-#       defaultZone: http://localhost:8761/eureka/
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

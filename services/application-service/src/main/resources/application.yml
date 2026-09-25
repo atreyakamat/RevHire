@@ -4,16 +4,16 @@ server:
 spring:
   application:
     name: application-service
-  datasource:
-    url: jdbc:mysql://localhost:3309/revhire_application?createDatabaseIfNotExist=true
-    # username: ${DB_USERNAME:root}
-    # password: ${DB_PASSWORD:root}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
+  config:
+    import: "optional:configserver:http://localhost:8888"
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 
-# eureka:
-#   client:
-#     service-url:
-#       defaultZone: http://localhost:8761/eureka/
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
