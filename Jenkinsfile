@@ -29,27 +29,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh '''
-                        echo "Checking SonarQube environment..."
-
-                        if [ -n "$SONAR_HOST_URL" ]; then
-                            echo "SONAR_HOST_URL = SET"
-                        else
-                            echo "SONAR_HOST_URL = NOT SET"
-                        fi
-
-                        if [ -n "$SONAR_AUTH_TOKEN" ]; then
-                            echo "SONAR_AUTH_TOKEN = SET"
-                        else
-                            echo "SONAR_AUTH_TOKEN = NOT SET"
-                        fi
-
-                        if [ -n "$SONAR_TOKEN" ]; then
-                            echo "SONAR_TOKEN = SET"
-                        else
-                            echo "SONAR_TOKEN = NOT SET"
-                        fi
-                    '''
+                    sh 'mvn sonar:sonar'
                 }
             }
         }
