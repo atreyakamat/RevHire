@@ -16,7 +16,7 @@ public class EmailService {
     @Value("${spring.mail.from:noreply@revhire.com}")
     private String fromEmail;
 
-    public EmailService(JavaMailSender mailSender) {
+    public EmailService(@org.springframework.beans.factory.annotation.Autowired(required = false) JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
@@ -25,6 +25,10 @@ public class EmailService {
      * Note: This is a simplified version. In production, use HTML templates.
      */
     public void sendNotificationEmail(Notification notification) {
+        if (mailSender == null) {
+            log.warn("JavaMailSender is not configured. Skipping email delivery for notification ID: {}", notification.getId());
+            return;
+        }
         try {
             // In production, you would fetch the user's email from User Service
             // For now, we'll use a placeholder

@@ -113,6 +113,42 @@ services:
           - apigateway
           - api-gateway
 
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    hostname: notification-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:h2:mem:revhire_notification;DB_CLOSE_DELAY=-1;MODE=MySQL
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.H2Dialect
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_FLYWAY_ENABLED=false
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 90s
+    networks:
+      revhire-network:
+        aliases:
+          - notificationservice
+          - notification-service
+
 networks:
   revhire-network:
     driver: bridge
