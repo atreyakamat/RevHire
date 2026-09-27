@@ -1,7 +1,5 @@
-# Placeholder Dockerfile for revhire-resume-service
-FROM eclipse-temurin:21-jre-alpine
+FROM openjdk:21-jdk-slim
 WORKDIR /app
-ARG JAR_FILE=target/*.jar
-COPY ${JAR_FILE} app.jar
-EXPOSE 8082
+COPY target/*.jar app.jar
+EXPOSE 8802
 ENTRYPOINT ["java", "-jar", "app.jar"]
