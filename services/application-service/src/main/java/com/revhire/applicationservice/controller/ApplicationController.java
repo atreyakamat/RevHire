@@ -1,7 +1,9 @@
 package com.revhire.applicationservice.controller;
 
+import com.revhire.applicationservice.client.JobClient;
 import com.revhire.applicationservice.dto.request.ApplicationRequest;
 import com.revhire.applicationservice.dto.response.ApplicationResponse;
+import com.revhire.applicationservice.dto.response.JobResponse;
 import com.revhire.applicationservice.entity.Application;
 import com.revhire.applicationservice.entity.ApplicationStatus;
 import com.revhire.applicationservice.mapper.ApplicationMapper;
@@ -18,9 +20,14 @@ import java.util.List;
 public class ApplicationController {
 
     private final ApplicationService applicationService;
+    private final JobClient jobClient;
 
-    public ApplicationController(ApplicationService applicationService) {
+    public ApplicationController(
+            ApplicationService applicationService,
+            JobClient jobClient) {
+
         this.applicationService = applicationService;
+        this.jobClient = jobClient;
     }
 
     // Submit a new application
@@ -43,7 +50,7 @@ public class ApplicationController {
     // Get application by ID
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationResponse> getApplicationById(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         Application application =
                 applicationService.getApplicationById(id);
@@ -69,7 +76,7 @@ public class ApplicationController {
     // Get applications by user
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<ApplicationResponse>> getApplicationsByUser(
-            @PathVariable Long userId) {
+            @PathVariable("userId") Long userId) {
 
         List<ApplicationResponse> responses =
                 applicationService.getApplicationsByUser(userId)
@@ -83,7 +90,7 @@ public class ApplicationController {
     // Get applications by job
     @GetMapping("/job/{jobId}")
     public ResponseEntity<List<ApplicationResponse>> getApplicationsByJob(
-            @PathVariable Long jobId) {
+            @PathVariable("jobId") Long jobId) {
 
         List<ApplicationResponse> responses =
                 applicationService.getApplicationsByJob(jobId)
@@ -97,7 +104,7 @@ public class ApplicationController {
     // Get applications by status
     @GetMapping("/status/{status}")
     public ResponseEntity<List<ApplicationResponse>> getApplicationsByStatus(
-            @PathVariable ApplicationStatus status) {
+            @PathVariable("status") ApplicationStatus status) {
 
         List<ApplicationResponse> responses =
                 applicationService.getApplicationsByStatus(status)
@@ -108,11 +115,21 @@ public class ApplicationController {
         return ResponseEntity.ok(responses);
     }
 
+    // Test Feign communication with Job Service
+    @GetMapping("/job-details/{jobId}")
+    public ResponseEntity<JobResponse> getJobFromJobService(
+            @PathVariable("jobId") Long jobId) {
+
+        return ResponseEntity.ok(
+                jobClient.getJobById(jobId)
+        );
+    }
+
     // Update application status
     @PutMapping("/{id}/status")
     public ResponseEntity<ApplicationResponse> updateApplicationStatus(
-            @PathVariable Long id,
-            @RequestParam ApplicationStatus status) {
+            @PathVariable("id") Long id,
+            @RequestParam("status") ApplicationStatus status) {
 
         Application application =
                 applicationService.updateApplicationStatus(id, status);
@@ -125,7 +142,7 @@ public class ApplicationController {
     // Delete application
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteApplication(
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
 
         applicationService.deleteApplication(id);
 
