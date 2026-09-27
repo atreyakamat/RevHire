@@ -1,0 +1,116 @@
+services:
+  # MySQL Database Container
+  mysql-db:
+    image: mysql:8.0
+    container_name: notification-mysql-db
+    hostname: notification-mysql-db
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: revhire_notification
+    volumes:
+      - notification-mysql-data:/var/lib/mysql
+      - ./infrastructure/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -proot || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      notification-network:
+        aliases:
+          - mysql-db
+          - notification-mysql-db
+
+  # Eureka Service Discovery Server
+  eureka-server:
+    build:
+      context: ./infrastructure/eureka-server
+      dockerfile: Dockerfile
+    image: notification-eureka-server:latest
+    container_name: notification-eureka-server
+    hostname: notification-eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=false
+      - EUREKA_CLIENT_FETCH_REGISTRY=false
+    networks:
+      notification-network:
+        aliases:
+          - eureka-server
+
+  # Spring Cloud Config Server
+  config-server:
+    build:
+      context: ./infrastructure/config-server
+      dockerfile: Dockerfile
+    image: notification-config-server:latest
+    container_name: notification-config-server
+    hostname: notification-config-server
+    ports:
+      - "8800:8800"
+    environment:
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+    networks:
+      notification-network:
+        aliases:
+          - config-server
+
+  # API Gateway Router
+  api-gateway:
+    build:
+      context: ./infrastructure/api-gateway
+      dockerfile: Dockerfile
+    image: notification-api-gateway:latest
+    container_name: notification-api-gateway
+    hostname: notification-api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    environment:
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+    networks:
+      notification-network:
+        aliases:
+          - api-gateway
+
+  # Notification Microservice
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: notification-service:latest
+    container_name: notification-service
+    hostname: notification-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/revhire_notification?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    networks:
+      notification-network:
+        aliases:
+          - notification-service
+
+networks:
+  notification-network:
+    driver: bridge
+
+volumes:
+  notification-mysql-data:
