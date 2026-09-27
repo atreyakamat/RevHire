@@ -10,6 +10,10 @@ import com.revhire.userservice.mapper.ProfileMapper;
 import com.revhire.userservice.repository.EmployerProfileRepository;
 import com.revhire.userservice.repository.JobSeekerProfileRepository;
 import com.revhire.userservice.repository.UserRepository;
+import com.revhire.userservice.security.CustomUserDetails;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,6 +34,19 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+            CustomUserDetails currentUser = (CustomUserDetails) authentication.getPrincipal();
+            
+            boolean isEmployer = currentUser.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYER"));
+            
+
+            if (isEmployer && !currentUser.getId().equals(user.getId()) && user.getRole() != Role.JOB_SEEKER) {
+                throw new AccessDeniedException("Employers are only authorized to view Job Seeker profiles.");
+            }
+        }
+
         if (user.getRole() == Role.JOB_SEEKER) {
             JobSeekerProfile profile = jobSeekerProfileRepository.findById(userId).orElse(null);
             return ProfileMapper.toResponse(user, profile);
@@ -38,7 +55,6 @@ public class UserServiceImpl implements UserService {
             return ProfileMapper.toResponse(user, profile);
         }
 
-        // Admin or standard user with no profile
         return ProfileMapper.toResponse(user, (JobSeekerProfile) null);
     }
 }

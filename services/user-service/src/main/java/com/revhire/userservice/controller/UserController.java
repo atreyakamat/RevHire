@@ -31,7 +31,7 @@ public class UserController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYER')")
-    public ResponseEntity<UserProfileResponse> getUserById(@PathVariable Long id) {
+    public ResponseEntity<UserProfileResponse> getUserById(@PathVariable("id") Long id) {
         UserProfileResponse response = userService.getUserProfile(id);
         return ResponseEntity.ok(response);
     }

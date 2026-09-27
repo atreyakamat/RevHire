@@ -12,7 +12,7 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${app.jwtSecret:RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890}")
+    @Value("${app.jwtSecret:RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}")
     private String jwtSecret;
 
     @Value("${app.jwtExpirationInMs:86400000}") // 1 day
