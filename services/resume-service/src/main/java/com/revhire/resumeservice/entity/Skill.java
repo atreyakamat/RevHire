@@ -17,7 +17,7 @@ public class Skill {
     @Column(nullable = false)
     private String name;
 
-    private String proficiency; // e.g., Beginner, Intermediate, Expert
+    private String proficiency;
 
     public Skill() {}
 
