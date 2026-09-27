@@ -7,10 +7,13 @@ services:
     hostname: eureka-server
     ports:
       - "8761:8761"
+    depends_on:
+      config-server:
+        condition: service_healthy
     environment:
       - CONFIG_SERVER_URL=http://config-server:8800
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8761/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8761/actuator/health || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -31,15 +34,12 @@ services:
       - "8800:8800"
     volumes:
       - ./config:/app/config:ro
-    depends_on:
-      eureka-server:
-        condition: service_healthy
     environment:
       - SPRING_PROFILES_ACTIVE=native
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8800/user-service/local || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8800/actuator/health || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -49,6 +49,38 @@ services:
         aliases:
           - configserver
           - config-server
+
+  test-service:
+    build:
+      context: ./services/test-service
+      dockerfile: Dockerfile
+    container_name: test-service
+    hostname: test-service
+    ports:
+      - "8086:8086"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_test?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8086/api/test/ping || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      revhire-network:
+        aliases:
+          - testservice
+          - test-service
 
   api-gateway:
     build:
@@ -63,11 +95,18 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      test-service:
+        condition: service_healthy
     environment:
       - CONFIG_SERVER_URL=http://config-server:8800
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-    entrypoint: ["sh", "-c", "sleep 5 && exec java -jar app.jar"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     networks:
       revhire-network:
         aliases:
