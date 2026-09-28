@@ -182,6 +182,14 @@ pipeline {
                     TIMESTAMP=$(date +%s)
                     REG_EMAIL="test${TIMESTAMP}@test.com"
 
+                    REG_PAYLOAD=$(jq -n \
+                        --arg email "$REG_EMAIL" \
+                        --arg password "test123" \
+                        --arg role "JOB_SEEKER" \
+                        --arg firstName "Integration" \
+                        --arg lastName "Tester" \
+                        '{email: $email, password: $password, role: $role, firstName: $firstName, lastName: $lastName}')
+
                     set +x
                     REG_CODE=""
 
@@ -189,7 +197,7 @@ pipeline {
                         REG_CODE=$(curl -s -o /tmp/reg.json -w "%{http_code}" \
                             -X POST "$GATEWAY_URL/api/auth/register" \
                             -H "Content-Type: application/json" \
-                            -d "{\"email\":\"$REG_EMAIL\",\"password\":\"test123\",\"role\":\"JOB_SEEKER\",\"firstName\":\"Integration\",\"lastName\":\"Tester\"}")
+                            -d "$REG_PAYLOAD")
 
                         if [ "$REG_CODE" = "201" ]; then
                             break
@@ -226,9 +234,14 @@ pipeline {
                     fi
                     echo "PASS: User registered successfully with ID: $USER_ID (HTTP 201)"
 
+                    LOGIN_PAYLOAD=$(jq -n \
+                        --arg email "$REG_EMAIL" \
+                        --arg password "test123" \
+                        '{email: $email, password: $password}')
+
                     LOGIN_CODE=$(curl -s -o /tmp/login.json -w "%{http_code}" -X POST "$GATEWAY_URL/api/auth/login" \
                         -H "Content-Type: application/json" \
-                        -d "{\"email\":\"$REG_EMAIL\",\"password\":\"test123\"}")
+                        -d "$LOGIN_PAYLOAD")
                     if [ "$LOGIN_CODE" != "200" ]; then
                         echo "ERROR: User login returned HTTP $LOGIN_CODE"
                         echo "Response body:"
@@ -284,8 +297,8 @@ pipeline {
                         TARGET_JOB_ID=1
                     fi
 
-                    APP_PAYLOAD=$(jq -n --arg jobId "$TARGET_JOB_ID" --arg userId "$USER_ID" \
-                        '{jobId: ($jobId | tonumber? // $jobId), userId: ($userId | tonumber? // $userId), resumeId: null}')
+                    APP_PAYLOAD=$(jq -n --argjson jobId "$TARGET_JOB_ID" --argjson userId "$USER_ID" \
+                        '{jobId: $jobId, userId: $userId, resumeId: null}')
 
                     APP_SUB_CODE=$(curl -s -o /tmp/app_sub.json -w "%{http_code}" -X POST "$GATEWAY_URL/api/applications" \
                         -H "Content-Type: application/json" \
