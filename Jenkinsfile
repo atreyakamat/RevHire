@@ -165,7 +165,7 @@ pipeline {
                     # 2. USER-SERVICE Register & Login
                     echo "2. Testing USER-SERVICE Auth..."
                     TIMESTAMP=$(date +%s)
-                    REG_EMAIL="ci_user_${TIMESTAMP}@revhire.local"
+                    REG_EMAIL="test${TIMESTAMP}@test.com"
 
                     set +x
                     REG_CODE=""
@@ -174,7 +174,7 @@ pipeline {
                         REG_CODE=$(curl -s -o /tmp/reg.json -w "%{http_code}" \
                             -X POST "$GATEWAY_URL/api/auth/register" \
                             -H "Content-Type: application/json" \
-                            -d "{\"email\":\"$REG_EMAIL\",\"password\":\"SecretPass123!\",\"role\":\"JOB_SEEKER\",\"firstName\":\"Integration\",\"lastName\":\"Tester\"}")
+                            -d "{\"email\":\"$REG_EMAIL\",\"password\":\"test123\",\"role\":\"JOB_SEEKER\",\"firstName\":\"Integration\",\"lastName\":\"Tester\"}")
 
                         if [ "$REG_CODE" = "201" ]; then
                             break
@@ -206,7 +206,7 @@ pipeline {
 
                     LOGIN_CODE=$(curl -s -o /tmp/login.json -w "%{http_code}" -X POST "$GATEWAY_URL/api/auth/login" \
                         -H "Content-Type: application/json" \
-                        -d "{\\"email\\":\\"$REG_EMAIL\\",\\"password\\":\\"SecretPass123!\\"}")
+                        -d "{\\"email\\":\\"$REG_EMAIL\\",\\"password\\":\\"atreya\\"}")
                     if [ "$LOGIN_CODE" != "200" ]; then
                         echo "ERROR: User login returned HTTP $LOGIN_CODE"
                         exit 1
