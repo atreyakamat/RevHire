@@ -15,9 +15,8 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Date;
-
 @Component
+@SuppressWarnings("java:S2143") // io.jsonwebtoken 0.11.x requires java.util.Date for setIssuedAt and setExpiration
 public class JwtTokenProvider {
 
     private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
@@ -43,6 +42,7 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
+    @SuppressWarnings("java:S2143") // io.jsonwebtoken 0.11.x requires java.util.Date for setIssuedAt and setExpiration
     public String generateToken(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userPrincipal)) {
             throw new IllegalArgumentException("Valid CustomUserDetails principal is required to generate JWT token");
@@ -53,8 +53,8 @@ public class JwtTokenProvider {
 
         return Jwts.builder()
                 .setSubject(Long.toString(userPrincipal.getId()))
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(expiryInstant))
+                .setIssuedAt(java.util.Date.from(now))
+                .setExpiration(java.util.Date.from(expiryInstant))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }

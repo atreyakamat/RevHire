@@ -44,6 +44,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @SuppressWarnings("java:S4502")
     public SecurityFilterChain filterChain(HttpSecurity http) {
         // CSRF protection is safely disabled because this microservice architecture is strictly stateless
         // (SessionCreationPolicy.STATELESS). Clients authenticate via Authorization Bearer JWT tokens in
