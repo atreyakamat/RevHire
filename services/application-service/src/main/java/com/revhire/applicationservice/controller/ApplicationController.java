@@ -1,14 +1,16 @@
 package com.revhire.applicationservice.controller;
 
 import com.revhire.applicationservice.client.JobClient;
+import com.revhire.applicationservice.client.UserClient;
 import com.revhire.applicationservice.dto.request.ApplicationRequest;
 import com.revhire.applicationservice.dto.response.ApplicationResponse;
 import com.revhire.applicationservice.dto.response.JobResponse;
+import com.revhire.applicationservice.dto.response.UserProfileResponse;
 import com.revhire.applicationservice.entity.Application;
 import com.revhire.applicationservice.entity.ApplicationStatus;
 import com.revhire.applicationservice.mapper.ApplicationMapper;
 import com.revhire.applicationservice.service.ApplicationService;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,13 +23,23 @@ public class ApplicationController {
 
     private final ApplicationService applicationService;
     private final JobClient jobClient;
+    private final UserClient userClient;
 
     public ApplicationController(
             ApplicationService applicationService,
             JobClient jobClient) {
+        this(applicationService, jobClient, null);
+    }
+
+    @Autowired
+    public ApplicationController(
+            ApplicationService applicationService,
+            JobClient jobClient,
+            @Autowired(required = false) UserClient userClient) {
 
         this.applicationService = applicationService;
         this.jobClient = jobClient;
+        this.userClient = userClient;
     }
 
     // Submit a new application
@@ -122,6 +134,20 @@ public class ApplicationController {
 
         return ResponseEntity.ok(
                 jobClient.getJobById(jobId)
+        );
+    }
+
+    // Test Feign communication with User Service
+    @GetMapping("/user-details/{userId}")
+    public ResponseEntity<UserProfileResponse> getUserFromUserService(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @PathVariable("userId") Long userId) {
+
+        if (userClient == null) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
+        return ResponseEntity.ok(
+                userClient.getUserById(authHeader, userId)
         );
     }
 

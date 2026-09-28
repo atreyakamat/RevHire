@@ -36,6 +36,7 @@ services:
       - ./config:/app/config:ro
     environment:
       - SPRING_PROFILES_ACTIVE=native
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:/app/config/{profile},file:/app/config/local,file:/app/config
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
     healthcheck:
@@ -82,36 +83,137 @@ services:
           - testservice
           - test-service
 
-  api-gateway:
+  user-service:
     build:
-      context: ./infrastructure/api-gateway
+      context: ./services/user-service
       dockerfile: Dockerfile
-    container_name: api-gateway
-    hostname: api-gateway
+    container_name: user-service
+    hostname: user-service
     ports:
-      - "8080:8080"
+      - "8801:8801"
     depends_on:
       eureka-server:
         condition: service_healthy
       config-server:
         condition: service_healthy
-      test-service:
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_user_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:8801/api/users/me 2>&1 | grep -q '401' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks:
+      revhire-network:
+        aliases:
+          - userservice
+          - user-service
+
+  resume-service:
+    build:
+      context: ./services/resume-service
+      dockerfile: Dockerfile
+    container_name: resume-service
+    hostname: resume-service
+    ports:
+      - "8802:8802"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
     environment:
       - CONFIG_SERVER_URL=http://config-server:8800
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_resume_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_OPEN_IN_VIEW=true
+      - USER_SERVICE_URL=http://user-service:8801
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget --spider http://localhost:8802/api/resumes/user/1 2>&1 | grep -q '401' || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10
-      start_period: 10s
+      start_period: 20s
     networks:
       revhire-network:
         aliases:
-          - apigateway
-          - api-gateway
+          - resumeservice
+          - resume-service
+
+  job-service:
+    build:
+      context: ./services/job-service
+      dockerfile: Dockerfile
+    container_name: job-service
+    hostname: job-service
+    ports:
+      - "8803:8803"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_job?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8803/api/jobs || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks:
+      revhire-network:
+        aliases:
+          - jobservice
+          - job-service
+
+  application-service:
+    build:
+      context: ./services/application-service
+      dockerfile: Dockerfile
+    container_name: application-service
+    hostname: application-service
+    ports:
+      - "8804:8804"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_application?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8804/applications || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks:
+      revhire-network:
+        aliases:
+          - applicationservice
+          - application-service
 
   notification-service:
     build:
@@ -148,6 +250,47 @@ services:
         aliases:
           - notificationservice
           - notification-service
+
+  api-gateway:
+    build:
+      context: ./infrastructure/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    hostname: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      test-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      resume-service:
+        condition: service_healthy
+      job-service:
+        condition: service_healthy
+      application-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8800
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      revhire-network:
+        aliases:
+          - apigateway
+          - api-gateway
 
 networks:
   revhire-network:

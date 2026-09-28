@@ -26,6 +26,9 @@ class ApplicationControllerTest {
     @Mock
     private ApplicationService applicationService;
 
+    @Mock
+    private com.revhire.applicationservice.client.JobClient jobClient;
+
     private MockMvc mockMvc;
 
 
@@ -33,7 +36,7 @@ class ApplicationControllerTest {
     void setUp() {
 
         ApplicationController controller =
-                new ApplicationController(applicationService);
+                new ApplicationController(applicationService, jobClient);
 
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
