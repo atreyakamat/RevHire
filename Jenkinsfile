@@ -166,27 +166,40 @@ pipeline {
                     echo "2. Testing USER-SERVICE Auth..."
                     TIMESTAMP=$(date +%s)
                     REG_EMAIL="ci_user_${TIMESTAMP}@revhire.local"
+
                     set +x
                     REG_CODE=""
+
                     for attempt in $(seq 1 15); do
-                        REG_CODE=$(curl -s -o /tmp/reg.json -w "%{http_code}" -X POST "$GATEWAY_URL/api/auth/register" \
+                        REG_CODE=$(curl -s -o /tmp/reg.json -w "%{http_code}" \
+                            -X POST "$GATEWAY_URL/api/auth/register" \
                             -H "Content-Type: application/json" \
-                            -d "{\\"email\\":\\"$REG_EMAIL\\",\\"password\\":\\"SecretPass123!\\",\\"role\\":\\"JOB_SEEKER\\",\\"firstName\\":\\"Integration\\",\\"lastName\\":\\"Tester\\"}")
+                            -d "{\"email\":\"$REG_EMAIL\",\"password\":\"SecretPass123!\",\"role\":\"JOB_SEEKER\",\"firstName\":\"Integration\",\"lastName\":\"Tester\"}")
+
                         if [ "$REG_CODE" = "201" ]; then
                             break
                         fi
+
+                        echo "Registration attempt $attempt returned HTTP $REG_CODE; retrying..."
                         sleep 2
                     done
+
                     if [ "$REG_CODE" != "201" ]; then
-                        echo "ERROR: User registration returned HTTP $REG_CODE"
+                        echo "ERROR: User registration failed after 15 attempts (HTTP $REG_CODE)"
+                        echo "Response body:"
+                        cat /tmp/reg.json
                         exit 1
                     fi
 
-                    TOKEN=$(sed -n 's/.*"token"[ ]*:[ ]*"\([^"]*\)".*/\1/p' /tmp/reg.json)
-                    USER_ID=$(sed -n 's/.*"userId"[ ]*:[ ]*\([0-9]*\).*/\1/p' /tmp/reg.json)
+                    echo "PASS: User registration successful (HTTP 201)"
+
+                    TOKEN=$(jq -r '.token // empty' /tmp/reg.json)
+                    USER_ID=$(jq -r '.userId // empty' /tmp/reg.json)
 
                     if [ -z "$TOKEN" ] || [ -z "$USER_ID" ]; then
-                        echo "ERROR: Failed to extract token or userId from registration response"
+                        echo "ERROR: Registration response is missing token or userId"
+                        echo "Response keys:"
+                        jq -r 'keys | join(", ")' /tmp/reg.json 2>/dev/null || echo "Invalid JSON response"
                         exit 1
                     fi
                     echo "PASS: User registered successfully with ID: $USER_ID (HTTP 201)"
@@ -198,9 +211,12 @@ pipeline {
                         echo "ERROR: User login returned HTTP $LOGIN_CODE"
                         exit 1
                     fi
-                    LOGIN_TOKEN=$(sed -n 's/.*"token"[ ]*:[ ]*"\([^"]*\)".*/\1/p' /tmp/login.json)
+                    LOGIN_TOKEN=$(jq -r '.token // empty' /tmp/login.json)
+
                     if [ -z "$LOGIN_TOKEN" ]; then
-                        echo "ERROR: Failed to extract token from login response"
+                        echo "ERROR: Login response is missing token"
+                        echo "Response keys:"
+                        jq -r 'keys | join(", ")' /tmp/login.json 2>/dev/null || echo "Invalid JSON response"
                         exit 1
                     fi
                     echo "PASS: User login OK (HTTP 200)"
