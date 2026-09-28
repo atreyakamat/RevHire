@@ -16,7 +16,7 @@ public class JwtTokenProvider {
 
     private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
 
-    @Value("${app.jwtSecret:RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}")
+    @Value("${app.jwtSecret:${JWT_SECRET:RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}}")
     private String jwtSecret;
 
     private SecretKey getSigningKey() {

@@ -104,6 +104,8 @@ services:
       - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
     healthcheck:
       test: ["CMD-SHELL", "wget --spider http://localhost:8801/api/users/me 2>&1 | grep -q '401' || exit 1"]
       interval: 5s
@@ -137,8 +139,10 @@ services:
       - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - SPRING_JPA_OPEN_IN_VIEW=true
+      - SPRING_JPA_OPEN_IN_VIEW=false
       - USER_SERVICE_URL=http://user-service:8801
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
     healthcheck:
       test: ["CMD-SHELL", "wget --spider http://localhost:8802/api/resumes/user/1 2>&1 | grep -q '401' || exit 1"]
       interval: 5s

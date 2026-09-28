@@ -15,11 +15,13 @@ import com.revhire.resumeservice.exception.ResourceNotFoundException;
 import com.revhire.resumeservice.exception.UnauthorizedAccessException;
 import com.revhire.resumeservice.repository.ResumeRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional
 public class ResumeServiceImpl implements ResumeService {
 
     private static final String ROLE_JOB_SEEKER = "JOB_SEEKER";

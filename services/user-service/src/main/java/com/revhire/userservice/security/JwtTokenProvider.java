@@ -23,7 +23,7 @@ public class JwtTokenProvider {
 
     private final Clock clock;
 
-    @Value("${app.jwtSecret:RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}")
+    @Value("${app.jwtSecret:${JWT_SECRET:RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}}")
     private String jwtSecret;
 
     @Value("${app.jwtExpirationInMs:86400000}") // 1 day
