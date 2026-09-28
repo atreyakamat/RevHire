@@ -132,8 +132,22 @@ pipeline {
                     done
 
                     # Integration Smoke Tests via API Gateway (Port 8080)
-                    GATEWAY_URL="http://api-gateway:8080"
-                    which curl >/dev/null || { echo "ERROR: curl is required"; exit 1; }
+                    command -v curl >/dev/null || { echo "ERROR: curl is required for integration tests"; exit 1; }
+                    command -v jq >/dev/null || { echo "ERROR: jq is required for integration tests"; exit 1; }
+
+                    # Determine Gateway URL based on reachable network (container network vs host agent)
+                    if curl -s -m 2 http://api-gateway:8080/actuator/health >/dev/null 2>&1 || getent hosts api-gateway >/dev/null 2>&1; then
+                        GATEWAY_URL="http://api-gateway:8080"
+                    elif curl -s -m 2 http://localhost:8080/actuator/health >/dev/null 2>&1; then
+                        GATEWAY_URL="http://localhost:8080"
+                    else
+                        if getent hosts api-gateway >/dev/null 2>&1; then
+                            GATEWAY_URL="http://api-gateway:8080"
+                        else
+                            GATEWAY_URL="http://localhost:8080"
+                        fi
+                    fi
+                    echo "Using API Gateway URL: $GATEWAY_URL"
 
                     # Wait for API Gateway route discovery warmup
                     echo "Waiting for API Gateway route discovery warmup..."
@@ -157,6 +171,7 @@ pipeline {
                     PING_CODE=$(curl -s -o /tmp/ping.json -w "%{http_code}" "$GATEWAY_URL/api/test/ping")
                     if [ "$PING_CODE" != "200" ]; then
                         echo "ERROR: TEST-SERVICE ping returned HTTP $PING_CODE"
+                        cat /tmp/ping.json 2>/dev/null || true
                         exit 1
                     fi
                     grep -q "test-service" /tmp/ping.json || { echo "ERROR: ping response missing test-service identity"; exit 1; }
@@ -180,8 +195,15 @@ pipeline {
                             break
                         fi
 
-                        echo "Registration attempt $attempt returned HTTP $REG_CODE; retrying..."
-                        sleep 2
+                        if [ "$REG_CODE" = "000" ] || [ "$REG_CODE" = "502" ] || [ "$REG_CODE" = "503" ] || [ "$REG_CODE" = "504" ]; then
+                            echo "Registration attempt $attempt returned transient HTTP $REG_CODE; retrying..."
+                            sleep 2
+                        else
+                            echo "ERROR: User registration failed with non-transient HTTP $REG_CODE"
+                            echo "Response body:"
+                            cat /tmp/reg.json
+                            exit 1
+                        fi
                     done
 
                     if [ "$REG_CODE" != "201" ]; then
@@ -206,9 +228,11 @@ pipeline {
 
                     LOGIN_CODE=$(curl -s -o /tmp/login.json -w "%{http_code}" -X POST "$GATEWAY_URL/api/auth/login" \
                         -H "Content-Type: application/json" \
-                        -d "{\\"email\\":\\"$REG_EMAIL\\",\\"password\\":\\"test123\\"}")
+                        -d "{\"email\":\"$REG_EMAIL\",\"password\":\"test123\"}")
                     if [ "$LOGIN_CODE" != "200" ]; then
                         echo "ERROR: User login returned HTTP $LOGIN_CODE"
+                        echo "Response body:"
+                        cat /tmp/login.json
                         exit 1
                     fi
                     LOGIN_TOKEN=$(jq -r '.token // empty' /tmp/login.json)
@@ -226,6 +250,7 @@ pipeline {
                     ME_CODE=$(curl -s -o /tmp/me.json -w "%{http_code}" -H "Authorization: Bearer $LOGIN_TOKEN" "$GATEWAY_URL/api/users/me")
                     if [ "$ME_CODE" != "200" ]; then
                         echo "ERROR: User profile returned HTTP $ME_CODE"
+                        cat /tmp/me.json 2>/dev/null || true
                         exit 1
                     fi
                     grep -q "$REG_EMAIL" /tmp/me.json || { echo "ERROR: Profile response does not match registered email"; exit 1; }
@@ -236,6 +261,7 @@ pipeline {
                     JOBS_CODE=$(curl -s -o /tmp/jobs.json -w "%{http_code}" "$GATEWAY_URL/api/jobs")
                     if [ "$JOBS_CODE" != "200" ]; then
                         echo "ERROR: Jobs list returned HTTP $JOBS_CODE"
+                        cat /tmp/jobs.json 2>/dev/null || true
                         exit 1
                     fi
                     grep -q "content" /tmp/jobs.json || { echo "ERROR: Jobs response missing content array"; exit 1; }
@@ -246,22 +272,35 @@ pipeline {
                     APPS_CODE=$(curl -s -o /tmp/apps.json -w "%{http_code}" "$GATEWAY_URL/api/applications")
                     if [ "$APPS_CODE" != "200" ]; then
                         echo "ERROR: Applications list returned HTTP $APPS_CODE"
+                        cat /tmp/apps.json 2>/dev/null || true
                         exit 1
                     fi
                     echo "PASS: APPLICATION-SERVICE endpoint verified (HTTP 200)"
 
                     # 6. APPLICATION Submission and Status Update Workflow
                     echo "6. Testing Application Submission and Status Update..."
+                    TARGET_JOB_ID=$(jq -r '.content[0].id // empty' /tmp/jobs.json 2>/dev/null || true)
+                    if [ -z "$TARGET_JOB_ID" ] || [ "$TARGET_JOB_ID" = "null" ]; then
+                        TARGET_JOB_ID=1
+                    fi
+
+                    APP_PAYLOAD=$(jq -n --arg jobId "$TARGET_JOB_ID" --arg userId "$USER_ID" \
+                        '{jobId: ($jobId | tonumber? // $jobId), userId: ($userId | tonumber? // $userId), resumeId: null}')
+
                     APP_SUB_CODE=$(curl -s -o /tmp/app_sub.json -w "%{http_code}" -X POST "$GATEWAY_URL/api/applications" \
                         -H "Content-Type: application/json" \
-                        -d "{\\"jobId\\":1,\\"userId\\":$USER_ID,\\"resumeId\\":null}")
+                        -d "$APP_PAYLOAD")
                     if [ "$APP_SUB_CODE" != "201" ]; then
                         echo "ERROR: Application submission returned HTTP $APP_SUB_CODE"
+                        echo "Response body:"
+                        cat /tmp/app_sub.json
                         exit 1
                     fi
-                    APP_ID=$(jq -r '.id // empty' /tmp/app.json)
+                    APP_ID=$(jq -r '.id // empty' /tmp/app_sub.json)
                     if [ -z "$APP_ID" ]; then
                         echo "ERROR: Failed to extract application ID from submission response"
+                        echo "Response body:"
+                        cat /tmp/app_sub.json
                         exit 1
                     fi
                     echo "PASS: Application submitted successfully with ID $APP_ID (HTTP 201)"
@@ -269,6 +308,7 @@ pipeline {
                     STATUS_CODE=$(curl -s -o /tmp/status.json -w "%{http_code}" -X PUT "$GATEWAY_URL/api/applications/$APP_ID/status?status=SHORTLISTED")
                     if [ "$STATUS_CODE" != "200" ]; then
                         echo "ERROR: Application status update returned HTTP $STATUS_CODE"
+                        cat /tmp/status.json 2>/dev/null || true
                         exit 1
                     fi
                     grep -q "SHORTLISTED" /tmp/status.json || { echo "ERROR: Status update response does not contain SHORTLISTED"; exit 1; }
@@ -286,6 +326,7 @@ pipeline {
                     done
                     if [ "$NOTIF_CODE" != "200" ]; then
                         echo "ERROR: Notifications query returned HTTP $NOTIF_CODE"
+                        cat /tmp/notif.json 2>/dev/null || true
                         exit 1
                     fi
                     grep -q "APPLICATION_SHORTLISTED" /tmp/notif.json || { echo "ERROR: Expected notification APPLICATION_SHORTLISTED not found for user $USER_ID"; exit 1; }
