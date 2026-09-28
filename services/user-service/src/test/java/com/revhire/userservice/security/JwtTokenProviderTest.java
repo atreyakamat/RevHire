@@ -20,7 +20,7 @@ class JwtTokenProviderTest {
 
     @BeforeEach
     void setUp() {
-        fixedClock = Clock.fixed(Instant.parse("2026-09-28T10:00:00Z"), ZoneId.of("UTC"));
+        fixedClock = Clock.fixed(Instant.now(), ZoneId.of("UTC"));
         tokenProvider = new JwtTokenProvider(fixedClock);
         ReflectionTestUtils.setField(tokenProvider, "jwtSecret",
                 "RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF");

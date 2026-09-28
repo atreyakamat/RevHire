@@ -65,6 +65,7 @@ public class JwtTokenProvider {
         }
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
+                .setClock(() -> java.util.Date.from(clock.instant()))
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -77,7 +78,11 @@ public class JwtTokenProvider {
             return false;
         }
         try {
-            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(authToken);
+            Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .setClock(() -> java.util.Date.from(clock.instant()))
+                    .build()
+                    .parseClaimsJws(authToken);
             return true;
         } catch (JwtException | IllegalArgumentException ex) {
             log.debug("Invalid JWT token: {}", ex.getMessage());
