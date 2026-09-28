@@ -259,7 +259,7 @@ pipeline {
                         echo "ERROR: Application submission returned HTTP $APP_SUB_CODE"
                         exit 1
                     fi
-                    APP_ID=$(sed -n 's/.*"id"[ ]*:[ ]*\([0-9]*\).*/\1/p' /tmp/app_sub.json | head -1)
+                    APP_ID=$(jq -r '.id // empty' /tmp/app.json)
                     if [ -z "$APP_ID" ]; then
                         echo "ERROR: Failed to extract application ID from submission response"
                         exit 1
