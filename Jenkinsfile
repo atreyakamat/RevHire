@@ -206,7 +206,7 @@ pipeline {
 
                     LOGIN_CODE=$(curl -s -o /tmp/login.json -w "%{http_code}" -X POST "$GATEWAY_URL/api/auth/login" \
                         -H "Content-Type: application/json" \
-                        -d "{\\"email\\":\\"$REG_EMAIL\\",\\"password\\":\\"atreya\\"}")
+                        -d "{\\"email\\":\\"$REG_EMAIL\\",\\"password\\":\\"test123\\"}")
                     if [ "$LOGIN_CODE" != "200" ]; then
                         echo "ERROR: User login returned HTTP $LOGIN_CODE"
                         exit 1
