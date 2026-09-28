@@ -25,6 +25,7 @@ public class Application {
     private LocalDateTime updatedAt;
 
     public Application() {
+        // Default constructor required by JPA
     }
 
     public Application(Long jobId, Long userId, Long resumeId,

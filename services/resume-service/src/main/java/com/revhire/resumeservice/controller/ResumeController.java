@@ -3,7 +3,6 @@ package com.revhire.resumeservice.controller;
 import com.revhire.resumeservice.dto.request.ResumeRequest;
 import com.revhire.resumeservice.dto.response.ResumeResponse;
 import com.revhire.resumeservice.service.ResumeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,8 +11,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/resumes")
 public class ResumeController {
 
-    @Autowired
-    private ResumeService resumeService;
+    private final ResumeService resumeService;
+
+    public ResumeController(ResumeService resumeService) {
+        this.resumeService = resumeService;
+    }
 
     @PostMapping
     public ResponseEntity<ResumeResponse> createResume(@RequestBody ResumeRequest request,

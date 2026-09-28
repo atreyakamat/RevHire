@@ -27,6 +27,7 @@ public class JobSeekerProfile {
     private LocalDate dateOfBirth;
 
     public JobSeekerProfile() {
+        // Default constructor required by JPA
     }
 
     public JobSeekerProfile(User user, String firstName, String lastName, String phone, LocalDate dateOfBirth) {

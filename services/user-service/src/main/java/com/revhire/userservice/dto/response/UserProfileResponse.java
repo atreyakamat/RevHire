@@ -18,6 +18,7 @@ public class UserProfileResponse {
     private String website;
 
     public UserProfileResponse() {
+        // Default constructor required for JSON serialization
     }
 
     // Getters and Setters

@@ -7,6 +7,7 @@ public class ApplicationRequest {
     private Long resumeId;
 
     public ApplicationRequest() {
+        // Default constructor required by Jackson
     }
 
     public Long getJobId() {

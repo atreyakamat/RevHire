@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,16 +21,24 @@ public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
     private final NotificationClient notificationClient;
+    private final Clock clock;
 
     public ApplicationService(ApplicationRepository applicationRepository) {
-        this(applicationRepository, null);
+        this(applicationRepository, null, Clock.systemUTC());
+    }
+
+    public ApplicationService(ApplicationRepository applicationRepository,
+                              NotificationClient notificationClient) {
+        this(applicationRepository, notificationClient, Clock.systemUTC());
     }
 
     @Autowired
     public ApplicationService(ApplicationRepository applicationRepository,
-                              @Autowired(required = false) NotificationClient notificationClient) {
+                              @Autowired(required = false) NotificationClient notificationClient,
+                              @Autowired(required = false) Clock clock) {
         this.applicationRepository = applicationRepository;
         this.notificationClient = notificationClient;
+        this.clock = clock != null ? clock : Clock.systemUTC();
     }
 
     // Submit a new application
@@ -37,7 +46,7 @@ public class ApplicationService {
 
         application.setStatus(ApplicationStatus.APPLIED);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         application.setAppliedAt(now);
         application.setUpdatedAt(now);
 
@@ -93,7 +102,7 @@ public class ApplicationService {
         Application application = getApplicationById(id);
 
         application.setStatus(status);
-        application.setUpdatedAt(LocalDateTime.now());
+        application.setUpdatedAt(LocalDateTime.now(clock));
 
         Application updated = applicationRepository.save(application);
 

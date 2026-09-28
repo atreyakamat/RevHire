@@ -10,6 +10,7 @@ public class UserProfileResponse {
     private String lastName;
 
     public UserProfileResponse() {
+        // Default constructor required by Jackson
     }
 
     public Long getId() {

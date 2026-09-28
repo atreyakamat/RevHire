@@ -19,7 +19,9 @@ public class Skill {
 
     private String proficiency;
 
-    public Skill() {}
+    public Skill() {
+        // Default constructor required by JPA and Jackson
+    }
 
     public Skill(String name, String proficiency) {
         this.name = name;

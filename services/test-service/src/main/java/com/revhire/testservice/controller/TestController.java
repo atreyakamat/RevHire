@@ -9,12 +9,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/test")
 public class TestController {
+
+    private static final String STATUS_KEY = "status";
+    private static final String STATUS_UP = "UP";
+    private static final String STATUS_DOWN = "DOWN";
 
     private final TestRecordRepository testRecordRepository;
 
@@ -26,7 +31,7 @@ public class TestController {
     public Map<String, String> ping() {
         return Map.of(
             "service", "test-service",
-            "status", "UP",
+            STATUS_KEY, STATUS_UP,
             "message", "test-service is reachable"
         );
     }
@@ -37,9 +42,10 @@ public class TestController {
         response.put("service", "test-service");
         response.put("database", "revhire_test");
         try {
-            TestRecord record = new TestRecord("Integration test at " + LocalDateTime.now(), LocalDateTime.now());
-            TestRecord saved = testRecordRepository.save(record);
-            response.put("status", "UP");
+            LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+            TestRecord testRecord = new TestRecord("Integration test at " + now, now);
+            TestRecord saved = testRecordRepository.save(testRecord);
+            response.put(STATUS_KEY, STATUS_UP);
             response.put("recordId", saved.getId());
             response.put("message", saved.getMessage());
             if (saved.getCreatedAt() != null) {
@@ -47,7 +53,7 @@ public class TestController {
             }
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            response.put("status", "DOWN");
+            response.put(STATUS_KEY, STATUS_DOWN);
             response.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
         }

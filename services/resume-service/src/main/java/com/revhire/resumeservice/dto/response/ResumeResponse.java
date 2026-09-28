@@ -13,7 +13,9 @@ public class ResumeResponse {
     private List<ExperienceDto> experienceList;
     private List<SkillDto> skills;
 
-    public ResumeResponse() {}
+    public ResumeResponse() {
+        // Default constructor required by JPA and Jackson
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

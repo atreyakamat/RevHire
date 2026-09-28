@@ -67,9 +67,9 @@ class TestRecordControllerTest {
 
     @Test
     void testGetRecordByIdFound() throws Exception {
-        TestRecord record = new TestRecord("Test 1", "Hello RevHire");
-        record.setId(1L);
-        when(testRecordService.getRecordById(1L)).thenReturn(Optional.of(record));
+        TestRecord testRecord = new TestRecord("Test 1", "Hello RevHire");
+        testRecord.setId(1L);
+        when(testRecordService.getRecordById(1L)).thenReturn(Optional.of(testRecord));
 
         mockMvc.perform(get("/api/test/records/{id}", 1L))
                 .andExpect(status().isOk())
@@ -92,7 +92,7 @@ class TestRecordControllerTest {
         saved.setId(1L);
         when(testRecordService.createRecord(any(TestRecord.class))).thenReturn(saved);
 
-        TestRecord input = new TestRecord("Test 1", "Hello RevHire");
+        com.revhire.testservice.dto.TestRecordRequest input = new com.revhire.testservice.dto.TestRecordRequest("Test 1", "Hello RevHire");
 
         mockMvc.perform(post("/api/test/records")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -109,7 +109,7 @@ class TestRecordControllerTest {
         updated.setId(1L);
         when(testRecordService.updateRecord(eq(1L), any(TestRecord.class))).thenReturn(Optional.of(updated));
 
-        TestRecord input = new TestRecord("Test 1 Updated", "Updated message");
+        com.revhire.testservice.dto.TestRecordRequest input = new com.revhire.testservice.dto.TestRecordRequest("Test 1 Updated", "Updated message");
 
         mockMvc.perform(put("/api/test/records/{id}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -124,7 +124,7 @@ class TestRecordControllerTest {
     void testUpdateRecordNotFound() throws Exception {
         when(testRecordService.updateRecord(eq(999L), any(TestRecord.class))).thenReturn(Optional.empty());
 
-        TestRecord input = new TestRecord("Test 1 Updated", "Updated message");
+        com.revhire.testservice.dto.TestRecordRequest input = new com.revhire.testservice.dto.TestRecordRequest("Test 1 Updated", "Updated message");
 
         mockMvc.perform(put("/api/test/records/{id}", 999L)
                         .contentType(MediaType.APPLICATION_JSON)

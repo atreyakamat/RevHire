@@ -13,6 +13,7 @@ public class LoginRequest {
     private String password;
 
     public LoginRequest() {
+        // Default constructor required for JSON deserialization
     }
 
     public String getEmail() {

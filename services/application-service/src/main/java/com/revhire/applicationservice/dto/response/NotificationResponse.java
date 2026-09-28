@@ -15,6 +15,7 @@ public class NotificationResponse {
     private LocalDateTime sentAt;
 
     public NotificationResponse() {
+        // Default constructor required by Jackson
     }
 
     public Long getId() {

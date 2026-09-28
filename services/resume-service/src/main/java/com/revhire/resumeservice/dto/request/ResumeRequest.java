@@ -11,7 +11,9 @@ public class ResumeRequest {
     private List<ExperienceDto> experienceList;
     private List<SkillDto> skills;
 
-    public ResumeRequest() {}
+    public ResumeRequest() {
+        // Default constructor required by JPA and Jackson
+    }
 
     public String getSummary() { return summary; }
     public void setSummary(String summary) { this.summary = summary; }

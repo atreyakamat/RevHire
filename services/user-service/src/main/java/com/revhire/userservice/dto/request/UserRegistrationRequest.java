@@ -31,6 +31,7 @@ public class UserRegistrationRequest {
     private String website;
 
     public UserRegistrationRequest() {
+        // Default constructor required for JSON deserialization
     }
 
     public String getEmail() {

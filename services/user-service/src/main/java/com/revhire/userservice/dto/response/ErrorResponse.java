@@ -10,6 +10,7 @@ public class ErrorResponse {
     private String path;
 
     public ErrorResponse() {
+        // Default constructor required for JSON serialization
     }
 
     public ErrorResponse(LocalDateTime timestamp, int status, String error, String message, String path) {

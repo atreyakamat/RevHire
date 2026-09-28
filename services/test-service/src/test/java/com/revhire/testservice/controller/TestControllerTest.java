@@ -45,9 +45,9 @@ class TestControllerTest {
 
     @Test
     void testDbEndpointSuccess() throws Exception {
-        TestRecord record = new TestRecord("Integration test", LocalDateTime.now());
-        record.setId(10L);
-        when(testRecordRepository.save(any(TestRecord.class))).thenReturn(record);
+        TestRecord testRecord = new TestRecord("Integration test", LocalDateTime.now());
+        testRecord.setId(10L);
+        when(testRecordRepository.save(any(TestRecord.class))).thenReturn(testRecord);
 
         mockMvc.perform(get("/api/test/db"))
                 .andExpect(status().isOk())

@@ -9,6 +9,7 @@ public class NotificationRequest {
     private String message;
 
     public NotificationRequest() {
+        // Default constructor required by Jackson
     }
 
     public NotificationRequest(Long recipientId, String type, String channel, String title, String message) {

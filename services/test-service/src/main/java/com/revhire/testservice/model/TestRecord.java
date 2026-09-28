@@ -24,6 +24,7 @@ public class TestRecord {
     private LocalDateTime createdAt;
 
     public TestRecord() {
+        // Default constructor required by JPA and Jackson
     }
 
     public TestRecord(String name, String message) {
@@ -78,7 +79,7 @@ public class TestRecord {
     @jakarta.persistence.PrePersist
     public void prePersist() {
         if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
+            this.createdAt = LocalDateTime.now(java.time.ZoneOffset.UTC);
         }
     }
 }

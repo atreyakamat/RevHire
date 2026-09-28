@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -214,7 +215,7 @@ public class NotificationService {
             emailService.sendNotificationEmail(notification);
 
             // Update sentAt timestamp
-            notification.setSentAt(LocalDateTime.now());
+            notification.setSentAt(LocalDateTime.now(ZoneOffset.UTC));
             notificationRepository.save(notification);
 
             log.info("Email sent successfully for notification ID: {}", notification.getId());

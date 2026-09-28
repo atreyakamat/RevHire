@@ -27,7 +27,9 @@ public class Resume {
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Skill> skills = new ArrayList<>();
 
-    public Resume() {}
+    public Resume() {
+        // Default constructor required by JPA and Jackson
+    }
 
     public Resume(Long jobSeekerId, String summary) {
         this.jobSeekerId = jobSeekerId;

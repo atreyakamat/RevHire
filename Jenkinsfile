@@ -80,7 +80,19 @@ pipeline {
 
                     if [ "$READY" != "true" ]; then
                         echo "Timed out waiting for microservices to become healthy."
+
+                        echo "=== Docker Compose status ==="
                         docker compose -p revhire ps
+
+                        echo "=== API Gateway logs ==="
+                        docker logs --tail=200 api-gateway || true
+
+                        echo "=== API Gateway health state ==="
+                        docker inspect api-gateway --format '{{json .State.Health}}' || true
+
+                        echo "=== API Gateway healthcheck configuration ==="
+                        docker inspect api-gateway --format '{{json .Config.Healthcheck}}' || true
+
                         exit 1
                     fi
 

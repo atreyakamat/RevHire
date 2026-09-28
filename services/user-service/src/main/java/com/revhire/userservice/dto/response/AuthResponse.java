@@ -6,6 +6,7 @@ public class AuthResponse {
     private String role;
 
     public AuthResponse() {
+        // Default constructor required for JSON serialization
     }
 
     public AuthResponse(String token, Long userId, String role) {
