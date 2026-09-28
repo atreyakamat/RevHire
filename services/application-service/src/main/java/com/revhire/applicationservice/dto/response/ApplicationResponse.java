@@ -15,6 +15,7 @@ public class ApplicationResponse {
     private LocalDateTime updatedAt;
 
     public ApplicationResponse() {
+        // Default constructor required by Jackson
     }
 
     public Long getId() {

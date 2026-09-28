@@ -19,15 +19,20 @@ public class Resume {
     private String summary;
 
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 25)
     private List<Education> educationList = new ArrayList<>();
 
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 25)
     private List<Experience> experienceList = new ArrayList<>();
 
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 25)
     private List<Skill> skills = new ArrayList<>();
 
-    public Resume() {}
+    public Resume() {
+        // Default constructor required by JPA and Jackson
+    }
 
     public Resume(Long jobSeekerId, String summary) {
         this.jobSeekerId = jobSeekerId;

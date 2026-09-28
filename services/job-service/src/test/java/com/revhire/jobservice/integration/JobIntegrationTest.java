@@ -3,7 +3,6 @@ package com.revhire.jobservice.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.revhire.jobservice.dto.request.CreateJobRequest;
 import com.revhire.jobservice.entity.Job;
-import com.revhire.jobservice.entity.JobStatus;
 import com.revhire.jobservice.entity.JobType;
 import com.revhire.jobservice.repository.JobRepository;
 import org.junit.jupiter.api.BeforeEach;

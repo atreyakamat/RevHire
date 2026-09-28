@@ -22,9 +22,14 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+            throw new org.springframework.security.authentication.InsufficientAuthenticationException("User is not authenticated or principal is invalid");
+        }
         Long userId = userDetails.getId();
-        
+        if (userId == null) {
+            throw new org.springframework.security.authentication.InsufficientAuthenticationException("User ID not found in security context");
+        }
+
         UserProfileResponse response = userService.getUserProfile(userId);
         return ResponseEntity.ok(response);
     }

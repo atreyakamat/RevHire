@@ -6,8 +6,8 @@ import com.revhire.notificationservice.entity.Notification;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class NotificationMapper {
@@ -20,7 +20,7 @@ public class NotificationMapper {
                 .title(request.getTitle())
                 .message(request.getMessage())
                 .isRead(false)
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
     }
 
@@ -47,6 +47,6 @@ public class NotificationMapper {
     public List<NotificationResponse> toResponseList(List<Notification> notifications) {
         return notifications.stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

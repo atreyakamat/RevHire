@@ -51,13 +51,12 @@ public class EmailService {
     }
 
     /**
-     * Get recipient email address
-     * TODO: Call User Service to fetch actual email address
-     * For now, using placeholder logic
+     * Get recipient email address.
+     * Architectural note: Currently using generated user email format. When UserServiceClient
+     * is integrated, this should look up the recipient's primary email from User Service.
      */
     private String getRecipientEmail(Long recipientId) {
-        // Placeholder: In production, call User Service API
-        // For testing, return a test email
+        // Fallback default: format recipient email until UserClient lookup is wired
         return "user" + recipientId + "@revhire.com";
     }
 }

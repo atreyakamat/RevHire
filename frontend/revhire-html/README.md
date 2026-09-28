@@ -1,11 +1,11 @@
-# RevHire Angular Frontend
+# RevHire HTML Frontend
 
 ## Purpose
 This directory contains the Angular single-page application (SPA) for RevHire. It serves as the primary user interface for job seekers and employers to interact with the platform.
 
 ## Technology Stack
-- **Framework:** Angular 18+
-- **Language:** TypeScript
+- **Framework:** HTML
+- **Language:** HTML, CSS
 - **HTTP Communication:** RESTful API client communicating with backend microservices via the API Gateway (`http://localhost:8080`)
 - **Default Development Port:** `4200`
 

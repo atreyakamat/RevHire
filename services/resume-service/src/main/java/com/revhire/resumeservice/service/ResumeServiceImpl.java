@@ -14,27 +14,31 @@ import com.revhire.resumeservice.entity.Skill;
 import com.revhire.resumeservice.exception.ResourceNotFoundException;
 import com.revhire.resumeservice.exception.UnauthorizedAccessException;
 import com.revhire.resumeservice.repository.ResumeRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class ResumeServiceImpl implements ResumeService {
 
-    @Autowired
-    private ResumeRepository resumeRepository;
+    private static final String ROLE_JOB_SEEKER = "JOB_SEEKER";
 
-    @Autowired
-    private UserClient userClient;
+    private final ResumeRepository resumeRepository;
+    private final UserClient userClient;
+
+    public ResumeServiceImpl(ResumeRepository resumeRepository, UserClient userClient) {
+        this.resumeRepository = resumeRepository;
+        this.userClient = userClient;
+    }
 
     @Override
     public ResumeResponse createResume(ResumeRequest request, String token) {
         UserProfileDto currentUser = userClient.getCurrentUser(token);
 
-        if (!"JOB_SEEKER".equals(currentUser.getRole())) {
+        if (!ROLE_JOB_SEEKER.equals(currentUser.getRole())) {
             throw new UnauthorizedAccessException("Only Job Seekers can create a resume.");
         }
 
@@ -55,7 +59,7 @@ public class ResumeServiceImpl implements ResumeService {
         Resume resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resume not found with id: " + resumeId));
 
-        if (!"JOB_SEEKER".equals(currentUser.getRole()) || !resume.getJobSeekerId().equals(currentUser.getId())) {
+        if (!ROLE_JOB_SEEKER.equals(currentUser.getRole()) || !resume.getJobSeekerId().equals(currentUser.getId())) {
             throw new UnauthorizedAccessException("You can only edit your own resume.");
         }
 
@@ -73,7 +77,7 @@ public class ResumeServiceImpl implements ResumeService {
     public ResumeResponse getResumeByJobSeekerId(Long jobSeekerId, String token) {
         UserProfileDto currentUser = userClient.getCurrentUser(token);
         
-        if ("JOB_SEEKER".equals(currentUser.getRole()) && !currentUser.getId().equals(jobSeekerId)) {
+        if (ROLE_JOB_SEEKER.equals(currentUser.getRole()) && !currentUser.getId().equals(jobSeekerId)) {
             throw new UnauthorizedAccessException("Job Seekers can only view their own resume.");
         }
 
@@ -89,7 +93,7 @@ public class ResumeServiceImpl implements ResumeService {
         Resume resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Resume not found with id: " + resumeId));
 
-        if (!"JOB_SEEKER".equals(currentUser.getRole()) || !resume.getJobSeekerId().equals(currentUser.getId())) {
+        if (!ROLE_JOB_SEEKER.equals(currentUser.getRole()) || !resume.getJobSeekerId().equals(currentUser.getId())) {
             throw new UnauthorizedAccessException("You can only delete your own resume.");
         }
 
@@ -129,7 +133,7 @@ public class ResumeServiceImpl implements ResumeService {
                 d.setStartDate(e.getStartDate());
                 d.setEndDate(e.getEndDate());
                 return d;
-            }).collect(Collectors.toList());
+            }).toList();
         }
         response.setEducationList(eduDtos);
 
@@ -143,7 +147,7 @@ public class ResumeServiceImpl implements ResumeService {
                 d.setEndDate(e.getEndDate());
                 d.setDescription(e.getDescription());
                 return d;
-            }).collect(Collectors.toList());
+            }).toList();
         }
         response.setExperienceList(expDtos);
 
@@ -154,7 +158,7 @@ public class ResumeServiceImpl implements ResumeService {
                 d.setName(s.getName());
                 d.setProficiency(s.getProficiency());
                 return d;
-            }).collect(Collectors.toList());
+            }).toList();
         }
         response.setSkills(skillDtos);
 

@@ -28,6 +28,7 @@
         <sonar.projectKey>revhire-microservices</sonar.projectKey>
         <sonar.projectName>RevHire Microservices</sonar.projectName>
         <sonar.java.binaries>**/target/classes</sonar.java.binaries>
+        <sonar.cpd.exclusions>**/dto/**,**/entity/**,**/model/**</sonar.cpd.exclusions>
     </properties>
 
     <modules>

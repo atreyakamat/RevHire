@@ -6,7 +6,9 @@ public class EducationDto {
     private String startDate;
     private String endDate;
 
-    public EducationDto() {}
+    public EducationDto() {
+        // Default constructor required by JPA and Jackson
+    }
 
     public String getDegree() { return degree; }
     public void setDegree(String degree) { this.degree = degree; }

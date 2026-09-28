@@ -21,6 +21,9 @@ class ApplicationServiceTest {
     @Mock
     private ApplicationRepository applicationRepository;
 
+    @Mock
+    private com.revhire.applicationservice.client.NotificationClient notificationClient;
+
     @InjectMocks
     private ApplicationService applicationService;
 
@@ -217,5 +220,73 @@ class ApplicationServiceTest {
 
         verify(applicationRepository).findById(1L);
         verify(applicationRepository).delete(application);
+    }
+
+    @Test
+    void submitApplication_shouldDispatchNotification() {
+        Application application = new Application();
+        application.setJobId(101L);
+        application.setUserId(201L);
+
+        when(applicationRepository.save(application)).thenReturn(application);
+
+        Application result = applicationService.submitApplication(application);
+
+        assertNotNull(result);
+        verify(notificationClient).sendNotification(any(com.revhire.applicationservice.dto.request.NotificationRequest.class));
+    }
+
+    @Test
+    void submitApplication_whenNotificationFails_shouldStillSucceed() {
+        Application application = new Application();
+        application.setJobId(101L);
+        application.setUserId(201L);
+
+        when(applicationRepository.save(application)).thenReturn(application);
+        when(notificationClient.sendNotification(any())).thenThrow(new RuntimeException("Notification service unreachable"));
+
+        Application result = applicationService.submitApplication(application);
+
+        assertNotNull(result);
+        assertEquals(ApplicationStatus.APPLIED, result.getStatus());
+        verify(applicationRepository).save(application);
+    }
+
+    @Test
+    void updateApplicationStatus_shouldDispatchStatusNotification() {
+        Application application = new Application();
+        application.setId(1L);
+        application.setJobId(101L);
+        application.setUserId(201L);
+        application.setStatus(ApplicationStatus.APPLIED);
+
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(applicationRepository.save(application)).thenReturn(application);
+
+        applicationService.updateApplicationStatus(1L, ApplicationStatus.SHORTLISTED);
+
+        verify(notificationClient).sendNotification(argThat(req ->
+                "APPLICATION_SHORTLISTED".equals(req.getType()) &&
+                Long.valueOf(201L).equals(req.getRecipientId())
+        ));
+    }
+
+    @Test
+    void updateApplicationStatus_whenNotificationFails_shouldStillUpdateStatus() {
+        Application application = new Application();
+        application.setId(1L);
+        application.setJobId(101L);
+        application.setUserId(201L);
+        application.setStatus(ApplicationStatus.APPLIED);
+
+        when(applicationRepository.findById(1L)).thenReturn(Optional.of(application));
+        when(applicationRepository.save(application)).thenReturn(application);
+        when(notificationClient.sendNotification(any())).thenThrow(new RuntimeException("Connection timed out"));
+
+        Application result = applicationService.updateApplicationStatus(1L, ApplicationStatus.HIRED);
+
+        assertNotNull(result);
+        assertEquals(ApplicationStatus.HIRED, result.getStatus());
+        verify(applicationRepository).save(application);
     }
 }

@@ -23,6 +23,7 @@ public class EmployerProfile {
     private String website;
 
     public EmployerProfile() {
+        // Default constructor required by JPA
     }
 
     public EmployerProfile(User user, String companyName, String contactName, String website) {

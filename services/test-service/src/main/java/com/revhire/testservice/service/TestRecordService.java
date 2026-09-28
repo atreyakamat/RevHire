@@ -28,22 +28,22 @@ public class TestRecordService {
         return testRecordRepository.findById(id);
     }
 
-    public TestRecord createRecord(TestRecord record) {
-        record.setId(null);
-        if (record.getCreatedAt() == null) {
-            record.setCreatedAt(java.time.LocalDateTime.now());
+    public TestRecord createRecord(TestRecord testRecord) {
+        testRecord.setId(null);
+        if (testRecord.getCreatedAt() == null) {
+            testRecord.setCreatedAt(java.time.LocalDateTime.now(java.time.ZoneOffset.UTC));
         }
-        return testRecordRepository.save(record);
+        return testRecordRepository.save(testRecord);
     }
 
-    public Optional<TestRecord> updateRecord(Long id, TestRecord record) {
+    public Optional<TestRecord> updateRecord(Long id, TestRecord testRecord) {
         return testRecordRepository.findById(id)
                 .map(existing -> {
-                    if (record.getName() != null) {
-                        existing.setName(record.getName());
+                    if (testRecord.getName() != null) {
+                        existing.setName(testRecord.getName());
                     }
-                    if (record.getMessage() != null) {
-                        existing.setMessage(record.getMessage());
+                    if (testRecord.getMessage() != null) {
+                        existing.setMessage(testRecord.getMessage());
                     }
                     return testRecordRepository.save(existing);
                 });

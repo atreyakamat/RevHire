@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @RestControllerAdvice
 @Slf4j
@@ -29,7 +30,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NOT_FOUND.value())
                 .message(ex.getMessage())
                 .error("Not Found")
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
 
@@ -50,7 +51,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.FORBIDDEN.value())
                 .message(ex.getMessage())
                 .error("Forbidden")
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
 
@@ -66,19 +67,19 @@ public class GlobalExceptionHandler {
             WebRequest request) {
 
         StringBuilder errors = new StringBuilder();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
+        ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.append(fieldName).append(": ").append(errorMessage).append("; ");
         });
 
-        log.warn("Validation failed: {}", errors.toString());
+        log.warn("Validation failed: {}", errors);
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
                 .message("Validation failed")
                 .error(errors.toString())
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
 
@@ -98,8 +99,8 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .message("An unexpected error occurred")
-                .error(ex.getMessage() != null ? ex.getMessage() : "Internal Server Error")
-                .timestamp(LocalDateTime.now())
+                .error("Internal Server Error")
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
 

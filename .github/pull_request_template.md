@@ -11,7 +11,7 @@
 - [ ] API Gateway (`infrastructure/api-gateway`)
 - [ ] Eureka Server (`infrastructure/eureka-server`)
 - [ ] Config Server (`infrastructure/config-server`)
-- [ ] Angular Frontend (`frontend/revhire-angular`)
+- [ ] Angular Frontend (`../frontend/revhire-html`)
 - [ ] Kubernetes / Docker / Infrastructure
 - [ ] Documentation / Build Scripts
 

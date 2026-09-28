@@ -1,5 +1,7 @@
 package com.revhire.testservice.controller;
 
+import com.revhire.testservice.dto.TestRecordRequest;
+import com.revhire.testservice.dto.TestRecordResponse;
 import com.revhire.testservice.model.TestRecord;
 import com.revhire.testservice.service.TestRecordService;
 import org.springframework.http.HttpStatus;
@@ -26,26 +28,32 @@ public class TestRecordController {
     }
 
     @GetMapping
-    public List<TestRecord> getAllRecords() {
-        return testRecordService.getAllRecords();
+    public List<TestRecordResponse> getAllRecords() {
+        return testRecordService.getAllRecords().stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TestRecord> getRecordById(@PathVariable("id") Long id) {
+    public ResponseEntity<TestRecordResponse> getRecordById(@PathVariable("id") Long id) {
         return testRecordService.getRecordById(id)
+                .map(this::toResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<TestRecord> createRecord(@RequestBody TestRecord record) {
-        TestRecord created = testRecordService.createRecord(record);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<TestRecordResponse> createRecord(@RequestBody TestRecordRequest request) {
+        TestRecord testRecord = new TestRecord(request.getName(), request.getMessage());
+        TestRecord created = testRecordService.createRecord(testRecord);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TestRecord> updateRecord(@PathVariable("id") Long id, @RequestBody TestRecord record) {
-        return testRecordService.updateRecord(id, record)
+    public ResponseEntity<TestRecordResponse> updateRecord(@PathVariable("id") Long id, @RequestBody TestRecordRequest request) {
+        TestRecord testRecord = new TestRecord(request.getName(), request.getMessage());
+        return testRecordService.updateRecord(id, testRecord)
+                .map(this::toResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -56,5 +64,14 @@ public class TestRecordController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    private TestRecordResponse toResponse(TestRecord testRecord) {
+        return new TestRecordResponse(
+                testRecord.getId(),
+                testRecord.getName(),
+                testRecord.getMessage(),
+                testRecord.getCreatedAt()
+        );
     }
 }

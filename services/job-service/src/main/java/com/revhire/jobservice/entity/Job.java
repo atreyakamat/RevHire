@@ -3,6 +3,7 @@ package com.revhire.jobservice.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Entity
 @Table(name = "jobs")
@@ -44,11 +45,12 @@ public class Job {
     private LocalDateTime updatedAt;
 
     public Job() {
+        // Default constructor required by JPA
     }
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = LocalDateTime.now(ZoneOffset.UTC);
 
         if (status == null) {
             status = JobStatus.DRAFT;
@@ -57,7 +59,7 @@ public class Job {
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public Long getId() {

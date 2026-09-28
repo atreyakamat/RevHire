@@ -41,9 +41,9 @@ out/
 .vscode/
 
 # Frontend (Node / Angular)
-frontend/revhire-angular/node_modules/
-frontend/revhire-angular/dist/
-frontend/revhire-angular/.angular/cache/
+frontend/revhire-html/node_modules/
+frontend/revhire-html/dist/
+frontend/revhire-html/.angular/cache/
 node_modules/
 dist/
 .angular/

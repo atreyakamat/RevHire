@@ -2,6 +2,7 @@ package com.revhire.userservice.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Objects;
 
 @Entity
@@ -29,6 +30,7 @@ public class User {
     private LocalDateTime updatedAt;
 
     public User() {
+        // Default constructor required by JPA
     }
 
     public User(String email, String password, Role role) {
@@ -39,13 +41,13 @@ public class User {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        createdAt = LocalDateTime.now(ZoneOffset.UTC);
+        updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public Long getId() {
@@ -99,8 +101,7 @@ public class User {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
+        if (!(o instanceof User user)) return false;
         return Objects.equals(id, user.id) && Objects.equals(email, user.email);
     }
 

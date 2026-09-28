@@ -6,6 +6,10 @@ import com.revhire.applicationservice.entity.Application;
 
 public class ApplicationMapper {
 
+    private ApplicationMapper() {
+        // Utility class
+    }
+
     public static Application toEntity(ApplicationRequest request) {
 
         Application application = new Application();

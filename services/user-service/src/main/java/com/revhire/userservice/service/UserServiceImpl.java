@@ -31,18 +31,19 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileResponse getUserProfile(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
-            CustomUserDetails currentUser = (CustomUserDetails) authentication.getPrincipal();
-            
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails currentUser) {
             boolean isEmployer = currentUser.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYER"));
-            
 
-            if (isEmployer && !currentUser.getId().equals(user.getId()) && user.getRole() != Role.JOB_SEEKER) {
+            if (isEmployer && currentUser.getId() != null && !currentUser.getId().equals(user.getId()) && user.getRole() != Role.JOB_SEEKER) {
                 throw new AccessDeniedException("Employers are only authorized to view Job Seeker profiles.");
             }
         }

@@ -23,7 +23,9 @@ public class Education {
     private String startDate;
     private String endDate;
 
-    public Education() {}
+    public Education() {
+        // Default constructor required by JPA and Jackson
+    }
 
     public Education(String degree, String institution, String startDate, String endDate) {
         this.degree = degree;

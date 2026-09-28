@@ -26,7 +26,9 @@ public class Experience {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    public Experience() {}
+    public Experience() {
+        // Default constructor required by JPA and Jackson
+    }
 
     public Experience(String jobTitle, String company, String startDate, String endDate, String description) {
         this.jobTitle = jobTitle;
