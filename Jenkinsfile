@@ -132,7 +132,7 @@ pipeline {
                     done
 
                     # Integration Smoke Tests via API Gateway (Port 8080)
-                    GATEWAY_URL="http://localhost:8080"
+                    GATEWAY_URL="http://api-gateway:8080"
                     which curl >/dev/null || { echo "ERROR: curl is required"; exit 1; }
 
                     # Wait for API Gateway route discovery warmup
