@@ -48,7 +48,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
-                    sh 'mvn -B sonar:sonar'
+                    sh 'mvn -B sonar:sonar -Dsonar.coverage.jacoco.xmlReportPaths=**/target/site/jacoco/jacoco.xml'
                 }
             }
         }
@@ -168,7 +168,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: '**/target/*.jar',
+            archiveArtifacts artifacts: '**/target/*.jar, **/target/site/jacoco/**',
                              allowEmptyArchive: true
         }
 
