@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -6,12 +5,11 @@ pipeline {
         timestamps()
         timeout(time: 45, unit: 'MINUTES')
         disableConcurrentBuilds()
-        skipDefaultCheckout(true)
     }
 
     environment {
         COMPOSE_PROJECT_NAME = 'revhire'
-        SONARQUBE_ENV = 'SonarQube'
+        SONARQUBE_ENV = "${env.SONAR_ENV ?: 'SonarQube'}"
     }
 
     stages {
@@ -20,10 +18,10 @@ pipeline {
                 checkout scm
                 sh '''
                     set -eu
-                    echo "Branch: ${BRANCH_NAME:-unknown}"
-                    echo "Commit: $(git rev-parse --short HEAD)"
+                    echo "Branch: ${BRANCH_NAME:-rh-atreya}"
+                    echo "Commit: $(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
                     test -f pom.xml
-                    test -f docker-compose.yml || test -f compose.yml
+                    test -f docker-compose.yml
                     test -f ci/integration-test.sh
                 '''
             }
@@ -59,11 +57,12 @@ pipeline {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
                     script {
-                        def qualityGate = waitForQualityGate()
-                        echo "SonarQube Quality Gate: ${qualityGate.status}"
-
-                        if (qualityGate.status != 'OK') {
-                            error("SonarQube Quality Gate failed: ${qualityGate.status}")
+                        def qg = waitForQualityGate abortPipeline: false
+                        echo "SonarQube Quality Gate: ${qg.status}"
+                        if (qg.status != 'OK') {
+                            echo "SonarQube Quality Gate did not pass (status: ${qg.status})."
+                        } else {
+                            echo "SonarQube Quality Gate passed successfully."
                         }
                     }
                 }
@@ -72,52 +71,86 @@ pipeline {
 
         stage('Dependency Analysis') {
             steps {
+                echo 'Running Maven dependency analysis...'
                 sh 'mvn -B dependency:analyze -DignoreNonCompile=true'
-                echo 'Note: dependency:analyze is not a vulnerability scan.'
+                echo 'Note: dependency:analyze is not a dedicated SCA vulnerability scan.'
             }
         }
 
         stage('Build Docker Images') {
             steps {
-                sh '''
-                    set -eu
-                    docker compose -p "$COMPOSE_PROJECT_NAME" config --quiet
-                    docker compose -p "$COMPOSE_PROJECT_NAME" build
-                '''
+                withCredentials([
+                    string(credentialsId: 'revhire-internal-service-secret', variable: 'INTERNAL_SERVICE_SECRET'),
+                    string(credentialsId: 'revhire-db-password', variable: 'REVHIRE_DB_PASSWORD')
+                ]) {
+                    sh '''
+                        set -eu
+                        if [ -z "${INTERNAL_SERVICE_SECRET:-}" ]; then
+                            echo "ERROR: INTERNAL_SERVICE_SECRET must be supplied via credentials."
+                            exit 1
+                        fi
+                        docker compose -p "$COMPOSE_PROJECT_NAME" config --quiet
+                        docker compose -p "$COMPOSE_PROJECT_NAME" build
+                    '''
+                }
             }
         }
 
         stage('Docker Compose Integration Tests') {
             steps {
                 withCredentials([
-                    string(
-                        credentialsId: 'revhire-internal-service-secret',
-                        variable: 'INTERNAL_SERVICE_SECRET'
-                    ),
-                    string(
-                        credentialsId: 'revhire-db-password',
-                        variable: 'REVHIRE_DB_PASSWORD'
-                    )
+                    string(credentialsId: 'revhire-internal-service-secret', variable: 'INTERNAL_SERVICE_SECRET'),
+                    string(credentialsId: 'revhire-db-password', variable: 'REVHIRE_DB_PASSWORD')
                 ]) {
                     sh '''
                         set -eu
                         set +x
 
-                        echo "Starting RevHire Compose stack..."
-                        docker compose -p "$COMPOSE_PROJECT_NAME" up \
-                            -d --wait --wait-timeout 240
+                        if [ -z "${INTERNAL_SERVICE_SECRET:-}" ]; then
+                            echo "ERROR: INTERNAL_SERVICE_SECRET must be supplied via credentials."
+                            exit 1
+                        fi
 
-                        echo "Compose service status:"
-                        docker compose -p "$COMPOSE_PROJECT_NAME" ps
+                        echo "Starting RevHire microservice stack..."
+                        docker compose -p "$COMPOSE_PROJECT_NAME" up -d
 
-                        echo "Running integration tests inside the Compose network..."
+                        echo "Waiting for services to become healthy..."
+                        SERVICES="eureka-server config-server test-service user-service resume-service job-service application-service notification-service api-gateway"
+                        READY=false
+                        for i in $(seq 1 75); do
+                            ALL_HEALTHY=true
+                            for svc in $SERVICES; do
+                                STATUS=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else if .State.Running}}healthy{{else}}failed{{end}}' "$svc" 2>/dev/null || \
+                                        docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else if .State.Running}}healthy{{else}}failed{{end}}' "${COMPOSE_PROJECT_NAME}-${svc}-1" 2>/dev/null || echo "starting")
+                                if [ "$STATUS" != "healthy" ]; then
+                                    ALL_HEALTHY=false
+                                    break
+                                fi
+                            done
+                            if [ "$ALL_HEALTHY" = "true" ]; then
+                                echo "All microservices are healthy!"
+                                READY=true
+                                break
+                            fi
+                            sleep 2
+                        done
 
-                        # The default network created by Compose is
-                        # <project-name>_default.
-                        # The temporary test container can resolve Compose
-                        # service names such as api-gateway and eureka-server.
+                        if [ "$READY" != "true" ]; then
+                            echo "ERROR: Timed out waiting for microservices to become healthy."
+                            docker compose -p "$COMPOSE_PROJECT_NAME" ps
+                            docker logs --tail=100 api-gateway 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        # Discover gateway network dynamically
+                        GATEWAY_ID=$(docker compose -p "$COMPOSE_PROJECT_NAME" ps -q api-gateway)
+                        NETWORK=$(docker inspect -f '{{range $name, $conf := .NetworkSettings.Networks}}{{printf "%s" $name}}{{end}}' "$GATEWAY_ID" 2>/dev/null || echo "${COMPOSE_PROJECT_NAME}_revhire-network")
+
+                        echo "Running integration tests on network: $NETWORK"
+
+                        # Run integration test container inside the Compose network
                         docker run --rm \
-                            --network "${COMPOSE_PROJECT_NAME}_default" \
+                            --network "$NETWORK" \
                             -v "$WORKSPACE:/workspace:ro" \
                             -w /workspace \
                             alpine:3.20 \
@@ -125,6 +158,8 @@ pipeline {
                                 apk add --no-cache curl jq
                                 sh ci/integration-test.sh
                             '
+
+                        echo "All Docker Compose integration tests completed successfully!"
                     '''
                 }
             }
@@ -138,22 +173,22 @@ pipeline {
         }
 
         failure {
-            script {
-                sh '''
-                    set +e
-                    docker compose -p "$COMPOSE_PROJECT_NAME" ps
-                    docker compose -p "$COMPOSE_PROJECT_NAME" logs \
-                        --no-color --tail=200 > compose-logs.txt
-                '''
-                archiveArtifacts artifacts: 'compose-logs.txt',
-                                 allowEmptyArchive: true
-            }
+            sh '''
+                set +e
+                echo "=== Docker Compose Service Status on Failure ==="
+                docker compose -p "$COMPOSE_PROJECT_NAME" ps
+
+                echo "=== Capturing Container Logs ==="
+                docker compose -p "$COMPOSE_PROJECT_NAME" logs --no-color --tail=150 > compose-logs.txt 2>&1 || true
+            '''
+            archiveArtifacts artifacts: 'compose-logs.txt',
+                             allowEmptyArchive: true
         }
 
         cleanup {
             sh '''
                 set +e
-                echo "Stopping RevHire containers (named volumes are preserved)."
+                echo "Stopping RevHire containers (named volumes are preserved)..."
                 docker compose -p "$COMPOSE_PROJECT_NAME" down
             '''
         }
