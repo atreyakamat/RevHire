@@ -57,8 +57,8 @@ services:
       dockerfile: Dockerfile
     container_name: test-service
     hostname: test-service
-    ports:
-      - "8086:8086"
+    expose:
+      - "8086"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -89,8 +89,8 @@ services:
       dockerfile: Dockerfile
     container_name: user-service
     hostname: user-service
-    ports:
-      - "8801:8801"
+    expose:
+      - "8801"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -124,8 +124,8 @@ services:
       dockerfile: Dockerfile
     container_name: resume-service
     hostname: resume-service
-    ports:
-      - "8802:8802"
+    expose:
+      - "8802"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -161,8 +161,8 @@ services:
       dockerfile: Dockerfile
     container_name: job-service
     hostname: job-service
-    ports:
-      - "8803:8803"
+    expose:
+      - "8803"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -195,8 +195,8 @@ services:
       dockerfile: Dockerfile
     container_name: application-service
     hostname: application-service
-    ports:
-      - "8804:8804"
+    expose:
+      - "8804"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -230,8 +230,8 @@ services:
       dockerfile: Dockerfile
     container_name: notification-service
     hostname: notification-service
-    ports:
-      - "8085:8085"
+    expose:
+      - "8085"
     depends_on:
       eureka-server:
         condition: service_healthy
