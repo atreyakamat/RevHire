@@ -46,7 +46,7 @@ public class NotificationController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<NotificationResponse> getNotification(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestHeader(value = "X-User-Id", required = false) Long userId) {
 
         log.info("GET /api/notifications/{} - Fetching notification", id);
@@ -68,9 +68,9 @@ public class NotificationController {
      */
     @GetMapping("/user/{userId}")
     public ResponseEntity<PaginatedNotificationResponse> getUserNotifications(
-            @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @PathVariable("userId") Long userId,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size) {
 
         log.info("GET /api/notifications/user/{} - Fetching user notifications (page: {}, size: {})",
                 userId, page, size);
@@ -87,7 +87,7 @@ public class NotificationController {
      */
     @PutMapping("/{id}/read")
     public ResponseEntity<NotificationResponse> markAsRead(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestHeader(value = "X-User-Id", required = false) Long userId) {
 
         log.info("PUT /api/notifications/{}/read - Marking as read", id);
@@ -107,7 +107,7 @@ public class NotificationController {
      */
     @PutMapping("/user/{userId}/read")
     public ResponseEntity<BulkActionResponse> markAllAsRead(
-            @PathVariable Long userId) {
+            @PathVariable("userId") Long userId) {
 
         log.info("PUT /api/notifications/user/{}/read - Marking all as read", userId);
 
@@ -123,7 +123,7 @@ public class NotificationController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteNotification(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestHeader(value = "X-User-Id", required = false) Long userId) {
 
         log.info("DELETE /api/notifications/{} - Deleting notification", id);
@@ -143,7 +143,7 @@ public class NotificationController {
      */
     @GetMapping("/user/{userId}/unread-count")
     public ResponseEntity<UnreadCountResponse> getUnreadCount(
-            @PathVariable Long userId) {
+            @PathVariable("userId") Long userId) {
 
         log.info("GET /api/notifications/user/{}/unread-count", userId);
 
