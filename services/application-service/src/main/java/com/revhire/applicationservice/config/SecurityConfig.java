@@ -20,6 +20,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final String ROLE_ADMIN = "ADMIN";
+
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
     private final JwtTokenProvider tokenProvider;
 
@@ -51,10 +53,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/error").permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                    .requestMatchers("/actuator/**").hasRole("ADMIN")
+                    .requestMatchers("/actuator/**").hasRole(ROLE_ADMIN)
                     .requestMatchers(HttpMethod.POST, "/applications").hasRole("JOB_SEEKER")
-                    .requestMatchers(HttpMethod.PUT, "/applications/*/status").hasAnyRole("EMPLOYER", "ADMIN")
-                    .requestMatchers(HttpMethod.DELETE, "/applications/*").hasAnyRole("JOB_SEEKER", "ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/applications/*/status").hasAnyRole("EMPLOYER", ROLE_ADMIN)
+                    .requestMatchers(HttpMethod.DELETE, "/applications/*").hasAnyRole("JOB_SEEKER", ROLE_ADMIN)
                     .anyRequest().authenticated()
                 );
 

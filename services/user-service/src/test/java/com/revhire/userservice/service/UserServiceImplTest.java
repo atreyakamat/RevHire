@@ -164,4 +164,76 @@ class UserServiceImplTest {
     void testUpdateUserRole_NullRole_ThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> userService.updateUserRole(5L, null));
     }
+
+    @Test
+    void testUpdateUserProfile_Employer_Success() {
+        User user = new User("emp@revhire.local", "pass", Role.EMPLOYER);
+        user.setId(2L);
+        EmployerProfile profile = new EmployerProfile(user, "Old Company", "Old Contact", "https://old.com");
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(user));
+        when(employerProfileRepository.findById(2L)).thenReturn(Optional.of(profile));
+
+        ProfileUpdateRequest updateReq = new ProfileUpdateRequest();
+        updateReq.setCompanyName("New Company");
+        updateReq.setContactName("New Contact");
+        updateReq.setWebsite("https://new.com");
+
+        UserProfileResponse response = userService.updateUserProfile(2L, updateReq);
+
+        assertNotNull(response);
+        assertEquals(2L, response.getId());
+        assertEquals(Role.EMPLOYER, response.getRole());
+        assertEquals("New Company", response.getCompanyName());
+        assertEquals("New Contact", response.getContactName());
+        assertEquals("https://new.com", response.getWebsite());
+        verify(employerProfileRepository, times(1)).save(profile);
+    }
+
+    @Test
+    void testUpdateUserProfile_NullUserId_ThrowsException() {
+        ProfileUpdateRequest req = new ProfileUpdateRequest();
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUserProfile(null, req));
+    }
+
+    @Test
+    void testUpdateUserProfile_UserNotFound_ThrowsException() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+        ProfileUpdateRequest req = new ProfileUpdateRequest();
+        assertThrows(ResourceNotFoundException.class, () -> userService.updateUserProfile(99L, req));
+    }
+
+    @Test
+    void testUpdateUserRole_NullUserId_ThrowsException() {
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUserRole(null, Role.ADMIN));
+    }
+
+    @Test
+    void testUpdateUserRole_UserNotFound_ThrowsException() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> userService.updateUserRole(99L, Role.ADMIN));
+    }
+
+    @Test
+    void testGetUserProfile_AdminUser() {
+        User user = new User("admin@revhire.local", "pass", Role.ADMIN);
+        user.setId(99L);
+        when(userRepository.findById(99L)).thenReturn(Optional.of(user));
+
+        UserProfileResponse response = userService.getUserProfile(99L);
+        assertNotNull(response);
+        assertEquals(Role.ADMIN, response.getRole());
+    }
+
+    @Test
+    void testUpdateUserRole_ToJobSeeker() {
+        User user = new User("user@revhire.local", "pass", Role.EMPLOYER);
+        user.setId(5L);
+        when(userRepository.findById(5L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        UserProfileResponse response = userService.updateUserRole(5L, Role.JOB_SEEKER);
+        assertNotNull(response);
+        assertEquals(Role.JOB_SEEKER, response.getRole());
+    }
 }

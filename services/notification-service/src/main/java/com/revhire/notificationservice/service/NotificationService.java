@@ -65,11 +65,15 @@ public class NotificationService {
      */
     @Transactional(readOnly = true)
     public NotificationResponse getNotificationById(Long id, Long userId) {
-        return getNotificationById(id, userId, false);
+        return findNotificationById(id, userId, false);
     }
 
     @Transactional(readOnly = true)
     public NotificationResponse getNotificationById(Long id, Long userId, boolean isAdmin) {
+        return findNotificationById(id, userId, isAdmin);
+    }
+
+    private NotificationResponse findNotificationById(Long id, Long userId, boolean isAdmin) {
         log.info("Fetching notification ID: {} for user: {} (isAdmin: {})", id, userId, isAdmin);
 
         if (!isAdmin) {

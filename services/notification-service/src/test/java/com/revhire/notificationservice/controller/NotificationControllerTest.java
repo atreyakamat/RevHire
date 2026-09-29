@@ -25,8 +25,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -181,7 +179,7 @@ class NotificationControllerTest {
                 .title("Test Notification")
                 .build();
 
-        when(notificationService.getNotificationById(eq(1L), eq(10L), eq(false))).thenReturn(response);
+        when(notificationService.getNotificationById(1L, 10L, false)).thenReturn(response);
 
         mockMvc.perform(get("/api/notifications/1")
                         .header("X-User-Id", 10L))
@@ -200,7 +198,7 @@ class NotificationControllerTest {
 
     @Test
     void testGetNotification_NotFound() throws Exception {
-        when(notificationService.getNotificationById(eq(999L), eq(10L), eq(false)))
+        when(notificationService.getNotificationById(999L, 10L, false))
                 .thenThrow(NotificationNotFoundException.withId(999L));
 
         mockMvc.perform(get("/api/notifications/999")
@@ -211,7 +209,7 @@ class NotificationControllerTest {
 
     @Test
     void testGetNotification_Unauthorized() throws Exception {
-        when(notificationService.getNotificationById(eq(1L), eq(2L), eq(false)))
+        when(notificationService.getNotificationById(1L, 2L, false))
                 .thenThrow(UnauthorizedException.userNotAllowed(2L, 1L));
 
         mockMvc.perform(get("/api/notifications/1")
@@ -253,7 +251,7 @@ class NotificationControllerTest {
                 .isRead(true)
                 .build();
 
-        when(notificationService.markAsRead(eq(1L), eq(10L), eq(false))).thenReturn(response);
+        when(notificationService.markAsRead(1L, 10L, false)).thenReturn(response);
 
         mockMvc.perform(put("/api/notifications/1/read")
                         .header("X-User-Id", 10L))
@@ -286,7 +284,7 @@ class NotificationControllerTest {
 
     @Test
     void testDeleteNotification_Success() throws Exception {
-        doNothing().when(notificationService).deleteNotification(eq(1L), eq(10L), eq(false));
+        doNothing().when(notificationService).deleteNotification(1L, 10L, false);
 
         mockMvc.perform(delete("/api/notifications/1")
                         .header("X-User-Id", 10L))

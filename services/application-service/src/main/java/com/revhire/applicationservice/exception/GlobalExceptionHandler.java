@@ -16,49 +16,41 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String KEY_TIMESTAMP = "timestamp";
+    private static final String KEY_STATUS = "status";
+    private static final String KEY_ERROR = "error";
+    private static final String KEY_MESSAGE = "message";
+    private static final String KEY_PATH = "path";
+
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(HttpStatus status, String errorPhrase, String message, WebRequest request) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put(KEY_TIMESTAMP, LocalDateTime.now(ZoneOffset.UTC).toString());
+        body.put(KEY_STATUS, status.value());
+        body.put(KEY_ERROR, errorPhrase);
+        body.put(KEY_MESSAGE, message);
+        body.put(KEY_PATH, request.getDescription(false).replace("uri=", ""));
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now(ZoneOffset.UTC).toString());
-        body.put("status", HttpStatus.FORBIDDEN.value());
-        body.put("error", "Forbidden");
-        body.put("message", ex.getMessage());
-        body.put("path", request.getDescription(false).replace("uri=", ""));
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "Forbidden", ex.getMessage(), request);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex, WebRequest request) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now(ZoneOffset.UTC).toString());
-        body.put("status", HttpStatus.UNAUTHORIZED.value());
-        body.put("error", "Unauthorized");
-        body.put("message", ex.getMessage());
-        body.put("path", request.getDescription(false).replace("uri=", ""));
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Unauthorized", ex.getMessage(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now(ZoneOffset.UTC).toString());
-        body.put("status", HttpStatus.BAD_REQUEST.value());
-        body.put("error", "Bad Request");
-        body.put("message", ex.getMessage());
-        body.put("path", request.getDescription(false).replace("uri=", ""));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), request);
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex, WebRequest request) {
         HttpStatus status = ex.getMessage() != null && ex.getMessage().toLowerCase().contains("not found")
                 ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now(ZoneOffset.UTC).toString());
-        body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
-        body.put("message", ex.getMessage());
-        body.put("path", request.getDescription(false).replace("uri=", ""));
-        return ResponseEntity.status(status).body(body);
+        return buildErrorResponse(status, status.getReasonPhrase(), ex.getMessage(), request);
     }
 }

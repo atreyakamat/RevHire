@@ -30,6 +30,11 @@ import java.util.List;
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String ROLE_EMPLOYER = "EMPLOYER";
+    private static final String ROLE_JOB_SEEKER = "JOB_SEEKER";
+    private static final String PATH_JOBS_WILDCARD = "/api/jobs/**";
+
     private final JwtTokenProvider tokenProvider;
     private final CorsConfigurationSource corsConfigurationSource;
 
@@ -87,21 +92,21 @@ public class SecurityConfig {
             .authorizeExchange(exchanges -> exchanges
                 .pathMatchers(HttpMethod.OPTIONS).permitAll()
                 .pathMatchers("/actuator/health", "/actuator/info").permitAll()
-                .pathMatchers("/actuator/**").hasRole("ADMIN")
+                .pathMatchers("/actuator/**").hasRole(ROLE_ADMIN)
                 .pathMatchers("/api/auth/**").permitAll()
-                .pathMatchers(HttpMethod.GET, "/api/jobs", "/api/jobs/**").permitAll()
+                .pathMatchers(HttpMethod.GET, "/api/jobs", PATH_JOBS_WILDCARD).permitAll()
                 .pathMatchers(HttpMethod.GET, "/api/test/ping").permitAll()
-                .pathMatchers("/api/test/**").hasRole("ADMIN")
-                .pathMatchers(HttpMethod.POST, "/api/jobs").hasRole("EMPLOYER")
-                .pathMatchers(HttpMethod.PUT, "/api/jobs/**").hasRole("EMPLOYER")
-                .pathMatchers(HttpMethod.DELETE, "/api/jobs/**").hasAnyRole("EMPLOYER", "ADMIN")
-                .pathMatchers(HttpMethod.POST, "/api/applications", "/api/applications/**").hasRole("JOB_SEEKER")
-                .pathMatchers(HttpMethod.PUT, "/api/applications/*/status").hasAnyRole("EMPLOYER", "ADMIN")
-                .pathMatchers(HttpMethod.DELETE, "/api/applications/**").hasAnyRole("JOB_SEEKER", "ADMIN")
-                .pathMatchers("/api/resumes/**").hasAnyRole("JOB_SEEKER", "EMPLOYER", "ADMIN")
+                .pathMatchers("/api/test/**").hasRole(ROLE_ADMIN)
+                .pathMatchers(HttpMethod.POST, "/api/jobs").hasRole(ROLE_EMPLOYER)
+                .pathMatchers(HttpMethod.PUT, PATH_JOBS_WILDCARD).hasRole(ROLE_EMPLOYER)
+                .pathMatchers(HttpMethod.DELETE, PATH_JOBS_WILDCARD).hasAnyRole(ROLE_EMPLOYER, ROLE_ADMIN)
+                .pathMatchers(HttpMethod.POST, "/api/applications", "/api/applications/**").hasRole(ROLE_JOB_SEEKER)
+                .pathMatchers(HttpMethod.PUT, "/api/applications/*/status").hasAnyRole(ROLE_EMPLOYER, ROLE_ADMIN)
+                .pathMatchers(HttpMethod.DELETE, "/api/applications/**").hasAnyRole(ROLE_JOB_SEEKER, ROLE_ADMIN)
+                .pathMatchers("/api/resumes/**").hasAnyRole(ROLE_JOB_SEEKER, ROLE_EMPLOYER, ROLE_ADMIN)
                 .pathMatchers("/api/notifications/**").authenticated()
                 .pathMatchers("/api/users/me").authenticated()
-                .pathMatchers("/api/users/{id}").hasAnyRole("EMPLOYER", "ADMIN")
+                .pathMatchers("/api/users/{id}").hasAnyRole(ROLE_EMPLOYER, ROLE_ADMIN)
                 .pathMatchers("/api/**").authenticated()
                 .anyExchange().permitAll()
             )

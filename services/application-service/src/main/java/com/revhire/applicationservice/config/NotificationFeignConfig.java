@@ -13,8 +13,6 @@ public class NotificationFeignConfig {
 
     @Bean
     public RequestInterceptor notificationInternalServiceRequestInterceptor() {
-        return requestTemplate -> {
-            requestTemplate.header("X-Internal-Service-Key", internalServiceKey);
-        };
+        return requestTemplate -> requestTemplate.header("X-Internal-Service-Key", internalServiceKey);
     }
 }

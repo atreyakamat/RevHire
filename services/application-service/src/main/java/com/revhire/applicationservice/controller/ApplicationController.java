@@ -80,6 +80,48 @@ public class ApplicationController {
         return false;
     }
 
+    private void verifyEmployerJobOwnership(Long jobId, Long authUserId, String denialMessage) {
+        if (jobClient == null) {
+            return;
+        }
+        try {
+            JobResponse job = jobClient.getJobById(jobId);
+            if (job != null && !job.getEmployerId().equals(authUserId)) {
+                throw new AccessDeniedException(denialMessage);
+            }
+        } catch (AccessDeniedException ade) {
+            throw ade;
+        } catch (Exception ignored) {
+            // Graceful degradation when job service is unreachable
+        }
+    }
+
+    private void verifyCanViewApplication(Application application, Long authUserId) {
+        if (authUserId == null || isCallerAdmin()) {
+            return;
+        }
+        if (isCallerJobSeeker() && !application.getUserId().equals(authUserId)) {
+            throw new AccessDeniedException("You are not authorized to view this application");
+        }
+        if (isCallerEmployer()) {
+            verifyEmployerJobOwnership(application.getJobId(), authUserId,
+                    "You are not authorized to view applications for another employer's job");
+        }
+    }
+
+    private void verifyCanViewApplicationsByJob(Long jobId, Long authUserId) {
+        if (authUserId == null || isCallerAdmin()) {
+            return;
+        }
+        if (isCallerJobSeeker()) {
+            throw new AccessDeniedException("Job seekers cannot view applications by job");
+        }
+        if (isCallerEmployer()) {
+            verifyEmployerJobOwnership(jobId, authUserId,
+                    "You can only view applications for your own jobs");
+        }
+    }
+
     // Submit a new application
     @PostMapping
     public ResponseEntity<ApplicationResponse> submitApplication(
@@ -97,10 +139,10 @@ public class ApplicationController {
                 if (job == null) {
                     throw new IllegalArgumentException("Job with id " + application.getJobId() + " does not exist");
                 }
-            } catch (Exception e) {
-                if (e instanceof IllegalArgumentException) {
-                    throw e;
-                }
+            } catch (IllegalArgumentException e) {
+                throw e;
+            } catch (Exception ignored) {
+                // Graceful degradation when job service is unreachable
             }
         }
 
@@ -122,22 +164,7 @@ public class ApplicationController {
                 applicationService.getApplicationById(id);
 
         Long authUserId = getAuthenticatedUserId();
-        if (authUserId != null && !isCallerAdmin()) {
-            if (isCallerJobSeeker() && !application.getUserId().equals(authUserId)) {
-                throw new AccessDeniedException("You are not authorized to view this application");
-            }
-            if (isCallerEmployer() && jobClient != null) {
-                try {
-                    JobResponse job = jobClient.getJobById(application.getJobId());
-                    if (job != null && !job.getEmployerId().equals(authUserId)) {
-                        throw new AccessDeniedException("You are not authorized to view applications for another employer's job");
-                    }
-                } catch (AccessDeniedException ade) {
-                    throw ade;
-                } catch (Exception ignored) {
-                }
-            }
-        }
+        verifyCanViewApplication(application, authUserId);
 
         return ResponseEntity.ok(
                 ApplicationMapper.toResponse(application)
@@ -192,22 +219,7 @@ public class ApplicationController {
             @PathVariable("jobId") Long jobId) {
 
         Long authUserId = getAuthenticatedUserId();
-        if (authUserId != null && !isCallerAdmin()) {
-            if (isCallerJobSeeker()) {
-                throw new AccessDeniedException("Job seekers cannot view applications by job");
-            }
-            if (isCallerEmployer() && jobClient != null) {
-                try {
-                    JobResponse job = jobClient.getJobById(jobId);
-                    if (job != null && !job.getEmployerId().equals(authUserId)) {
-                        throw new AccessDeniedException("You can only view applications for your own jobs");
-                    }
-                } catch (AccessDeniedException ade) {
-                    throw ade;
-                } catch (Exception ignored) {
-                }
-            }
-        }
+        verifyCanViewApplicationsByJob(jobId, authUserId);
 
         List<ApplicationResponse> responses =
                 applicationService.getApplicationsByJob(jobId)
@@ -268,17 +280,10 @@ public class ApplicationController {
             @RequestParam("status") ApplicationStatus status) {
 
         Long authUserId = getAuthenticatedUserId();
-        if (authUserId != null && !isCallerAdmin() && isCallerEmployer() && jobClient != null) {
+        if (authUserId != null && !isCallerAdmin() && isCallerEmployer()) {
             Application application = applicationService.getApplicationById(id);
-            try {
-                JobResponse job = jobClient.getJobById(application.getJobId());
-                if (job != null && !job.getEmployerId().equals(authUserId)) {
-                    throw new AccessDeniedException("You cannot update application status for another employer's job");
-                }
-            } catch (AccessDeniedException ade) {
-                throw ade;
-            } catch (Exception ignored) {
-            }
+            verifyEmployerJobOwnership(application.getJobId(), authUserId,
+                    "You cannot update application status for another employer's job");
         }
 
         Application application =

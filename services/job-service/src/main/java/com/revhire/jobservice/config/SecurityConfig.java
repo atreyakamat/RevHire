@@ -20,6 +20,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final String PATH_JOBS_ID = "/api/jobs/{id}";
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String ROLE_EMPLOYER = "EMPLOYER";
+
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
     private final JwtTokenProvider tokenProvider;
 
@@ -49,14 +53,14 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(HttpMethod.GET, "/api/jobs", "/api/jobs/{id}").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/jobs", PATH_JOBS_ID).permitAll()
                     .requestMatchers("/error").permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                    .requestMatchers("/actuator/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.POST, "/api/jobs").hasRole("EMPLOYER")
-                    .requestMatchers(HttpMethod.PUT, "/api/jobs/{id}").hasRole("EMPLOYER")
-                    .requestMatchers(HttpMethod.DELETE, "/api/jobs/{id}").hasAnyRole("EMPLOYER", "ADMIN")
-                    .requestMatchers(HttpMethod.GET, "/api/jobs/employer/{employerId}").hasAnyRole("EMPLOYER", "ADMIN")
+                    .requestMatchers("/actuator/**").hasRole(ROLE_ADMIN)
+                    .requestMatchers(HttpMethod.POST, "/api/jobs").hasRole(ROLE_EMPLOYER)
+                    .requestMatchers(HttpMethod.PUT, PATH_JOBS_ID).hasRole(ROLE_EMPLOYER)
+                    .requestMatchers(HttpMethod.DELETE, PATH_JOBS_ID).hasAnyRole(ROLE_EMPLOYER, ROLE_ADMIN)
+                    .requestMatchers(HttpMethod.GET, "/api/jobs/employer/{employerId}").hasAnyRole(ROLE_EMPLOYER, ROLE_ADMIN)
                     .anyRequest().authenticated()
                 );
 

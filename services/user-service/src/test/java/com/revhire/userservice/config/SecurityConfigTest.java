@@ -38,7 +38,7 @@ class SecurityConfigTest {
     }
 
     @Test
-    void testAuthenticationManager() throws Exception {
+    void testAuthenticationManager() {
         SecurityConfig config = new SecurityConfig(unauthorizedHandler, jwtAuthenticationFilter);
         when(authenticationConfiguration.getAuthenticationManager()).thenReturn(authenticationManager);
 

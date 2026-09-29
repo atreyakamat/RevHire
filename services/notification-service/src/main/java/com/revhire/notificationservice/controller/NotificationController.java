@@ -26,15 +26,17 @@ public class NotificationController {
     }
 
     private Long getAuthenticatedUserId(Authentication authentication, Long headerUserId) {
-        if (authentication != null && authentication.getPrincipal() != null) {
+        if (authentication != null) {
             Object principal = authentication.getPrincipal();
             if (principal instanceof Long l) {
                 return l;
             }
-            try {
-                return Long.parseLong(principal.toString());
-            } catch (NumberFormatException ignored) {
-                // Ignore and fallback to header if needed
+            if (principal != null) {
+                try {
+                    return Long.parseLong(principal.toString());
+                } catch (NumberFormatException ignored) {
+                    // Ignore and fallback to header if needed
+                }
             }
         }
         if (headerUserId != null) {

@@ -1,7 +1,5 @@
 package com.revhire.resumeservice.dto;
 
-import com.revhire.resumeservice.dto.request.ResumeRequest;
-import com.revhire.resumeservice.dto.response.ResumeResponse;
 import com.revhire.resumeservice.entity.Education;
 import com.revhire.resumeservice.entity.Experience;
 import com.revhire.resumeservice.entity.Resume;
@@ -9,7 +7,6 @@ import com.revhire.resumeservice.entity.Skill;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 

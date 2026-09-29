@@ -9,7 +9,6 @@ import com.revhire.jobservice.entity.JobStatus;
 import com.revhire.jobservice.entity.JobType;
 import com.revhire.jobservice.exception.GlobalExceptionHandler;
 import com.revhire.jobservice.security.JwtAuthenticationEntryPoint;
-import com.revhire.jobservice.security.JwtAuthenticationFilter;
 import com.revhire.jobservice.security.JwtTokenProvider;
 import com.revhire.jobservice.service.JobService;
 import org.junit.jupiter.api.BeforeEach;

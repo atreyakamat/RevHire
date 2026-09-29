@@ -13,7 +13,9 @@ public class ProfileUpdateRequest {
     private String contactName;
     private String website;
 
-    public ProfileUpdateRequest() {}
+    public ProfileUpdateRequest() {
+        // Default constructor required for JSON deserialization
+    }
 
     public String getPhone() {
         return phone;
