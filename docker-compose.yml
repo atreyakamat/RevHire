@@ -1,312 +1,570 @@
-services:
-  eureka-server:
-    build:
-      context: ./infrastructure/eureka-server
-      dockerfile: Dockerfile
-    container_name: eureka-server
-    hostname: eureka-server
-    ports:
-      - "8761:8761"
-    depends_on:
-      config-server:
-        condition: service_healthy
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8800
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8761/actuator/health || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 10s
-    networks:
-      revhire-network:
-        aliases:
-          - eurekaserver
-          - eureka-server
 
-  config-server:
-    build:
-      context: ./infrastructure/config-server
-      dockerfile: Dockerfile
-    container_name: config-server
-    hostname: config-server
-    ports:
-      - "8800:8800"
-    volumes:
-      - ./config:/app/config:ro
-    environment:
-      - SPRING_PROFILES_ACTIVE=native
-      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:/app/config/{profile},file:/app/config/local,file:/app/config
-      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8800/actuator/health || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 10s
-    networks:
-      revhire-network:
-        aliases:
-          - configserver
-          - config-server
+pipeline {
+    agent any
 
-  test-service:
-    build:
-      context: ./services/test-service
-      dockerfile: Dockerfile
-    container_name: test-service
-    hostname: test-service
-    expose:
-      - "8086"
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8800
-      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_test?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
-      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8086/api/test/ping || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 10s
-    networks:
-      revhire-network:
-        aliases:
-          - testservice
-          - test-service
+    options {
+        timestamps()
+        timeout(time: 45, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        skipDefaultCheckout(true)
+    }
 
-  user-service:
-    build:
-      context: ./services/user-service
-      dockerfile: Dockerfile
-    container_name: user-service
-    hostname: user-service
-    expose:
-      - "8801"
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8800
-      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_user_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
-      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider http://localhost:8801/api/users/me 2>&1 | grep -q '401' || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 20s
-    networks:
-      revhire-network:
-        aliases:
-          - userservice
-          - user-service
+    environment {
+        // Configure SONAR_ENV in Jenkins if your SonarQube server has a different name.
+        SONARQUBE_ENV = "${SONAR_ENV ?: 'SonarQube'}"
 
-  resume-service:
-    build:
-      context: ./services/resume-service
-      dockerfile: Dockerfile
-    container_name: resume-service
-    hostname: resume-service
-    expose:
-      - "8802"
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8800
-      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_resume_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
-      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - SPRING_JPA_OPEN_IN_VIEW=false
-      - USER_SERVICE_URL=http://user-service:8801
-      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider http://localhost:8802/api/resumes/user/1 2>&1 | grep -q '401' || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 20s
-    networks:
-      revhire-network:
-        aliases:
-          - resumeservice
-          - resume-service
+        // Supply these through Jenkins credentials/environment configuration.
+        // Do not put actual secrets in this file.
+        REVHIRE_DB_PASSWORD = "${REVHIRE_DB_PASSWORD ?: ''}"
+        INTERNAL_SERVICE_SECRET = "${INTERNAL_SERVICE_SECRET ?: ''}"
 
-  job-service:
-    build:
-      context: ./services/job-service
-      dockerfile: Dockerfile
-    container_name: job-service
-    hostname: job-service
-    expose:
-      - "8803"
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8800
-      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_job?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
-      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8803/api/jobs || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 20s
-    networks:
-      revhire-network:
-        aliases:
-          - jobservice
-          - job-service
+        // Set to true only after this pipeline successfully starts the Compose stack.
+        REVHIRE_COMPOSE_STARTED = 'false'
+    }
 
-  application-service:
-    build:
-      context: ./services/application-service
-      dockerfile: Dockerfile
-    container_name: application-service
-    hostname: application-service
-    expose:
-      - "8804"
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8800
-      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_application?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
-      - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET:?INTERNAL_SERVICE_SECRET must be supplied via environment or credentials}
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider http://localhost:8804/applications 2>&1 | grep -q '401' || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 20s
-    networks:
-      revhire-network:
-        aliases:
-          - applicationservice
-          - application-service
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
 
-  notification-service:
-    build:
-      context: ./services/notification-service
-      dockerfile: Dockerfile
-    container_name: notification-service
-    hostname: notification-service
-    expose:
-      - "8085"
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8800
-      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-      - SPRING_DATASOURCE_URL=jdbc:h2:mem:revhire_notification;DB_CLOSE_DELAY=-1;MODE=MySQL
-      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver
-      - SPRING_DATASOURCE_USERNAME=sa
-      - SPRING_DATASOURCE_PASSWORD=
-      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.H2Dialect
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - SPRING_FLYWAY_ENABLED=false
-      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET:?INTERNAL_SERVICE_SECRET must be supplied via environment or credentials}
-    healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health || exit 1" ]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 90s
-    networks:
-      revhire-network:
-        aliases:
-          - notificationservice
-          - notification-service
+                sh '''
+                    set -eu
+                    test -f pom.xml
+                    test -f docker-compose.yml
+                '''
+            }
+        }
 
-  api-gateway:
-    build:
-      context: ./infrastructure/api-gateway
-      dockerfile: Dockerfile
-    container_name: api-gateway
-    hostname: api-gateway
-    ports:
-      - "8080:8080"
-    depends_on:
-      eureka-server:
-        condition: service_healthy
-      config-server:
-        condition: service_healthy
-      test-service:
-        condition: service_healthy
-      user-service:
-        condition: service_healthy
-      resume-service:
-        condition: service_healthy
-      job-service:
-        condition: service_healthy
-      application-service:
-        condition: service_healthy
-      notification-service:
-        condition: service_healthy
-    environment:
-      - CONFIG_SERVER_URL=http://config-server:8800
-      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
-      - SERVER_PORT=8080
-      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 20s
-    networks:
-      revhire-network:
-        aliases:
-          - apigateway
-          - api-gateway
+        stage('Build & Unit Tests') {
+            steps {
+                sh 'mvn -B clean test'
+            }
+        }
 
-networks:
-  revhire-network:
-    driver: bridge
+        stage('Package') {
+            steps {
+                sh 'mvn -B package -DskipTests'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                    sh 'mvn -B sonar:sonar'
+                }
+
+                timeout(time: 5, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate abortPipeline: false
+                        echo "SonarQube Quality Gate result: ${qg.status}"
+
+                        if (qg.status != 'OK') {
+                            echo "Quality Gate did not pass (status: ${qg.status})."
+                        } else {
+                            echo 'SonarQube Quality Gate passed successfully.'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                echo 'Running Maven dependency usage analysis (used undeclared / unused declared)...'
+                echo 'Note: This is dependency analysis, not a vulnerability SCA scan.'
+                sh 'mvn -B dependency:analyze -DignoreNonCompile=true'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker compose -p revhire build'
+            }
+        }
+
+        stage('Docker Compose Integration Test') {
+            steps {
+                script {
+                    /*
+                     * Prevent this pipeline from taking over an already-running
+                     * RevHire Compose stack.
+                     */
+                    sh '''
+                        set -eu
+
+                        command -v docker >/dev/null
+                        command -v curl >/dev/null
+                        command -v jq >/dev/null
+
+                        if [ -z "$INTERNAL_SERVICE_SECRET" ]; then
+                            echo "ERROR: INTERNAL_SERVICE_SECRET is not set."
+                            echo "Supply it through Jenkins credentials/environment configuration."
+                            exit 1
+                        fi
+
+                        echo "Checking Compose configuration..."
+                        docker compose -p revhire config --quiet
+
+                        echo "Checking required Compose services..."
+                        CONFIGURED_SERVICES="$(docker compose -p revhire config --services)"
+
+                        REQUIRED_SERVICES="eureka-server config-server test-service user-service resume-service job-service application-service notification-service api-gateway"
+
+                        for svc in $REQUIRED_SERVICES; do
+                            if ! printf '%s\\n' "$CONFIGURED_SERVICES" | grep -Fxq "$svc"; then
+                                echo "ERROR: Required Compose service '$svc' is not configured."
+                                exit 1
+                            fi
+                        done
+
+                        EXISTING_IDS="$(docker compose -p revhire ps -q)"
+
+                        if [ -n "$EXISTING_IDS" ]; then
+                            RUNNING_EXISTING=false
+
+                            for container_id in $EXISTING_IDS; do
+                                state="$(docker inspect --format '{{.State.Status}}' "$container_id" 2>/dev/null || echo unknown)"
+                                if [ "$state" = "running" ]; then
+                                    RUNNING_EXISTING=true
+                                    break
+                                fi
+                            done
+
+                            if [ "$RUNNING_EXISTING" = "true" ]; then
+                                echo "ERROR: A RevHire Compose container is already running."
+                                echo "Refusing to replace or stop a potentially shared stack."
+                                docker compose -p revhire ps
+                                exit 1
+                            fi
+                        fi
+
+                        echo "Starting RevHire Compose services..."
+                        docker compose -p revhire up -d
+                    '''
+
+                    // Only clean up if this pipeline reached and completed `up -d`.
+                    env.REVHIRE_COMPOSE_STARTED = 'true'
+
+                    sh '''
+                        set -eu
+
+                        SERVICES="eureka-server config-server test-service user-service resume-service job-service application-service notification-service api-gateway"
+
+                        echo "Waiting for Compose services to be running..."
+                        READY=false
+
+                        for attempt in $(seq 1 60); do
+                            ALL_RUNNING=true
+
+                            for svc in $SERVICES; do
+                                container_id="$(docker compose -p revhire ps -q "$svc" | head -n 1)"
+
+                                if [ -z "$container_id" ]; then
+                                    echo "Service $svc has no container yet."
+                                    ALL_RUNNING=false
+                                    break
+                                fi
+
+                                state="$(docker inspect --format '{{.State.Status}}' "$container_id" 2>/dev/null || echo unknown)"
+
+                                if [ "$state" != "running" ]; then
+                                    echo "Service $svc state: $state"
+                                    ALL_RUNNING=false
+                                    break
+                                fi
+
+                                # If a healthcheck exists, require it to report healthy.
+                                health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$container_id" 2>/dev/null || echo unknown)"
+
+                                if [ "$health" != "no-healthcheck" ] && [ "$health" != "healthy" ]; then
+                                    echo "Service $svc health: $health"
+                                    ALL_RUNNING=false
+                                    break
+                                fi
+                            done
+
+                            if [ "$ALL_RUNNING" = "true" ]; then
+                                READY=true
+                                break
+                            fi
+
+                            sleep 2
+                        done
+
+                        if [ "$READY" != "true" ]; then
+                            echo "ERROR: Timed out waiting for Compose services."
+
+                            echo "=== Compose status ==="
+                            docker compose -p revhire ps || true
+
+                            echo "=== Compose logs ==="
+                            docker compose -p revhire logs --tail=100 || true
+
+                            exit 1
+                        fi
+
+                        echo "All required Compose services are running."
+                    '''
+
+                    /*
+                     * The integration checks below run on the Jenkins agent.
+                     * This requires Compose to publish gateway port 8080 and
+                     * Eureka port 8761 to the Jenkins agent host.
+                     */
+                    sh '''
+                        set -eu
+
+                        GATEWAY_URL="http://localhost:8080"
+                        EUREKA_URL="http://localhost:8761"
+
+                        echo "Using API Gateway URL: $GATEWAY_URL"
+                        echo "Using Eureka URL: $EUREKA_URL"
+
+                        echo "Waiting for Eureka..."
+                        EUREKA_READY=false
+
+                        for attempt in $(seq 1 60); do
+                            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "$EUREKA_URL/eureka/apps" || true)"
+                            if [ "$code" = "200" ]; then
+                                EUREKA_READY=true
+                                break
+                            fi
+                            sleep 2
+                        done
+
+                        if [ "$EUREKA_READY" != "true" ]; then
+                            echo "ERROR: Eureka did not become reachable."
+                            exit 1
+                        fi
+
+                        echo "Verifying Eureka registrations..."
+                        REQUIRED_APPS="TEST-SERVICE USER-SERVICE RESUME-SERVICE JOB-SERVICE APPLICATION-SERVICE NOTIFICATION-SERVICE API-GATEWAY"
+
+                        for app in $REQUIRED_APPS; do
+                            REGISTERED=false
+
+                            for attempt in $(seq 1 30); do
+                                response="$(curl -fsS --max-time 5 \
+                                    -H 'Accept: application/json' \
+                                    "$EUREKA_URL/eureka/apps/$app" 2>/dev/null || true)"
+
+                                if printf '%s' "$response" | grep -qi "$app"; then
+                                    REGISTERED=true
+                                    break
+                                fi
+
+                                sleep 2
+                            done
+
+                            if [ "$REGISTERED" != "true" ]; then
+                                echo "ERROR: $app did not register with Eureka."
+                                exit 1
+                            fi
+
+                            echo "PASS: $app registered with Eureka."
+                        done
+
+                        echo "Waiting for API Gateway routing..."
+                        GATEWAY_READY=false
+
+                        for attempt in $(seq 1 30); do
+                            code="$(curl -s -o /tmp/revhire-ping.json -w '%{http_code}' \
+                                --max-time 5 "$GATEWAY_URL/api/test/ping" || true)"
+
+                            if [ "$code" = "200" ]; then
+                                GATEWAY_READY=true
+                                break
+                            fi
+
+                            sleep 2
+                        done
+
+                        if [ "$GATEWAY_READY" != "true" ]; then
+                            echo "ERROR: API Gateway did not route /api/test/ping."
+                            cat /tmp/revhire-ping.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        grep -qi "test-service" /tmp/revhire-ping.json || {
+                            echo "ERROR: Ping response did not contain test-service."
+                            cat /tmp/revhire-ping.json
+                            exit 1
+                        }
+
+                        echo "PASS: TEST-SERVICE ping."
+
+                        TIMESTAMP="$(date +%s)"
+                        REG_EMAIL="test${TIMESTAMP}@test.com"
+                        TEST_PASSWORD="test123"
+
+                        REG_PAYLOAD="$(jq -n \
+                            --arg email "$REG_EMAIL" \
+                            --arg password "$TEST_PASSWORD" \
+                            --arg role "JOB_SEEKER" \
+                            --arg firstName "Integration" \
+                            --arg lastName "Tester" \
+                            '{email:$email,password:$password,role:$role,firstName:$firstName,lastName:$lastName}')"
+
+                        echo "Registering job seeker..."
+                        REG_CODE="$(curl -s -o /tmp/revhire-register.json -w '%{http_code}' \
+                            --max-time 15 \
+                            -X POST "$GATEWAY_URL/api/auth/register" \
+                            -H 'Content-Type: application/json' \
+                            -d "$REG_PAYLOAD" || true)"
+
+                        if [ "$REG_CODE" != "201" ]; then
+                            echo "ERROR: Registration returned HTTP $REG_CODE."
+                            cat /tmp/revhire-register.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        TOKEN="$(jq -r '.token // empty' /tmp/revhire-register.json)"
+                        USER_ID="$(jq -r '.userId // empty' /tmp/revhire-register.json)"
+
+                        if [ -z "$TOKEN" ] || [ -z "$USER_ID" ]; then
+                            echo "ERROR: Registration response is missing token or userId."
+                            jq 'keys' /tmp/revhire-register.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        echo "PASS: Job seeker registration."
+
+                        LOGIN_PAYLOAD="$(jq -n \
+                            --arg email "$REG_EMAIL" \
+                            --arg password "$TEST_PASSWORD" \
+                            '{email:$email,password:$password}')"
+
+                        LOGIN_CODE="$(curl -s -o /tmp/revhire-login.json -w '%{http_code}' \
+                            --max-time 15 \
+                            -X POST "$GATEWAY_URL/api/auth/login" \
+                            -H 'Content-Type: application/json' \
+                            -d "$LOGIN_PAYLOAD" || true)"
+
+                        if [ "$LOGIN_CODE" != "200" ]; then
+                            echo "ERROR: Login returned HTTP $LOGIN_CODE."
+                            cat /tmp/revhire-login.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        LOGIN_TOKEN="$(jq -r '.token // empty' /tmp/revhire-login.json)"
+
+                        if [ -z "$LOGIN_TOKEN" ]; then
+                            echo "ERROR: Login response is missing token."
+                            exit 1
+                        fi
+
+                        echo "PASS: Job seeker login."
+
+                        ME_CODE="$(curl -s -o /tmp/revhire-me.json -w '%{http_code}' \
+                            --max-time 15 \
+                            -H "Authorization: Bearer $LOGIN_TOKEN" \
+                            "$GATEWAY_URL/api/users/me" || true)"
+
+                        if [ "$ME_CODE" != "200" ] || ! grep -q "$REG_EMAIL" /tmp/revhire-me.json; then
+                            echo "ERROR: Authenticated profile check failed (HTTP $ME_CODE)."
+                            cat /tmp/revhire-me.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        echo "PASS: Authenticated user profile."
+
+                        JOBS_CODE="$(curl -s -o /tmp/revhire-jobs.json -w '%{http_code}' \
+                            --max-time 15 "$GATEWAY_URL/api/jobs" || true)"
+
+                        if [ "$JOBS_CODE" != "200" ] || ! jq -e 'has("content")' /tmp/revhire-jobs.json >/dev/null 2>&1; then
+                            echo "ERROR: Jobs list check failed (HTTP $JOBS_CODE)."
+                            cat /tmp/revhire-jobs.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        echo "PASS: Jobs list endpoint."
+
+                        EMP_EMAIL="emp${TIMESTAMP}@test.com"
+
+                        EMP_REG_PAYLOAD="$(jq -n \
+                            --arg email "$EMP_EMAIL" \
+                            --arg password "$TEST_PASSWORD" \
+                            --arg role "EMPLOYER" \
+                            --arg firstName "Employer" \
+                            --arg lastName "Tester" \
+                            --arg companyName "RevHire Tech Inc" \
+                            --arg contactName "Employer Recruiter" \
+                            '{email:$email,password:$password,role:$role,firstName:$firstName,lastName:$lastName,companyName:$companyName,contactName:$contactName}')"
+
+                        EMP_CODE="$(curl -s -o /tmp/revhire-employer.json -w '%{http_code}' \
+                            --max-time 15 \
+                            -X POST "$GATEWAY_URL/api/auth/register" \
+                            -H 'Content-Type: application/json' \
+                            -d "$EMP_REG_PAYLOAD" || true)"
+
+                        if [ "$EMP_CODE" != "201" ]; then
+                            echo "ERROR: Employer registration returned HTTP $EMP_CODE."
+                            cat /tmp/revhire-employer.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        EMP_TOKEN="$(jq -r '.token // empty' /tmp/revhire-employer.json)"
+
+                        if [ -z "$EMP_TOKEN" ]; then
+                            echo "ERROR: Employer registration response is missing token."
+                            exit 1
+                        fi
+
+                        JOB_PAYLOAD='{"title":"Integration Test Engineer","description":"Automated test position","location":"Remote","skills":"Java, CI/CD","salary":95000,"jobType":"FULL_TIME"}'
+
+                        JOB_CREATE_CODE="$(curl -s -o /tmp/revhire-job-create.json -w '%{http_code}' \
+                            --max-time 15 \
+                            -X POST "$GATEWAY_URL/api/jobs" \
+                            -H 'Content-Type: application/json' \
+                            -H "Authorization: Bearer $EMP_TOKEN" \
+                            -d "$JOB_PAYLOAD" || true)"
+
+                        if [ "$JOB_CREATE_CODE" != "201" ]; then
+                            echo "ERROR: Job creation returned HTTP $JOB_CREATE_CODE."
+                            cat /tmp/revhire-job-create.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        TARGET_JOB_ID="$(jq -r '.id // empty' /tmp/revhire-job-create.json)"
+
+                        if [ -z "$TARGET_JOB_ID" ] || [ "$TARGET_JOB_ID" = "null" ]; then
+                            echo "ERROR: Job creation response is missing id."
+                            cat /tmp/revhire-job-create.json
+                            exit 1
+                        fi
+
+                        echo "PASS: Employer registration and job creation."
+
+                        APPS_CODE="$(curl -s -o /tmp/revhire-apps.json -w '%{http_code}' \
+                            --max-time 15 \
+                            -H "Authorization: Bearer $LOGIN_TOKEN" \
+                            "$GATEWAY_URL/api/applications" || true)"
+
+                        if [ "$APPS_CODE" != "200" ]; then
+                            echo "ERROR: Applications list returned HTTP $APPS_CODE."
+                            cat /tmp/revhire-apps.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        echo "PASS: Applications list endpoint."
+
+                        APP_PAYLOAD="$(jq -n \
+                            --argjson jobId "$TARGET_JOB_ID" \
+                            --argjson userId "$USER_ID" \
+                            '{jobId:$jobId,userId:$userId,resumeId:null}')"
+
+                        APP_SUB_CODE="$(curl -s -o /tmp/revhire-app-submit.json -w '%{http_code}' \
+                            --max-time 15 \
+                            -X POST "$GATEWAY_URL/api/applications" \
+                            -H 'Content-Type: application/json' \
+                            -H "Authorization: Bearer $LOGIN_TOKEN" \
+                            -d "$APP_PAYLOAD" || true)"
+
+                        if [ "$APP_SUB_CODE" != "201" ]; then
+                            echo "ERROR: Application submission returned HTTP $APP_SUB_CODE."
+                            cat /tmp/revhire-app-submit.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        APP_ID="$(jq -r '.id // empty' /tmp/revhire-app-submit.json)"
+
+                        if [ -z "$APP_ID" ] || [ "$APP_ID" = "null" ]; then
+                            echo "ERROR: Application response is missing id."
+                            cat /tmp/revhire-app-submit.json
+                            exit 1
+                        fi
+
+                        echo "PASS: Application submitted."
+
+                        STATUS_CODE="$(curl -s -o /tmp/revhire-status.json -w '%{http_code}' \
+                            --max-time 15 \
+                            -X PUT "$GATEWAY_URL/api/applications/$APP_ID/status?status=SHORTLISTED" \
+                            -H "Authorization: Bearer $EMP_TOKEN" || true)"
+
+                        if [ "$STATUS_CODE" != "200" ] || ! grep -q "SHORTLISTED" /tmp/revhire-status.json; then
+                            echo "ERROR: Application status update failed (HTTP $STATUS_CODE)."
+                            cat /tmp/revhire-status.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        echo "PASS: Application status updated."
+
+                        echo "Waiting for notification dispatch..."
+                        NOTIFICATION_FOUND=false
+
+                        for attempt in $(seq 1 15); do
+                            NOTIF_CODE="$(curl -s -o /tmp/revhire-notifications.json -w '%{http_code}' \
+                                --max-time 15 \
+                                -H "Authorization: Bearer $LOGIN_TOKEN" \
+                                "$GATEWAY_URL/api/notifications/user/$USER_ID" || true)"
+
+                            if [ "$NOTIF_CODE" = "200" ] && grep -q "APPLICATION_SHORTLISTED" /tmp/revhire-notifications.json; then
+                                NOTIFICATION_FOUND=true
+                                break
+                            fi
+
+                            sleep 2
+                        done
+
+                        if [ "$NOTIFICATION_FOUND" != "true" ]; then
+                            echo "ERROR: Expected APPLICATION_SHORTLISTED notification was not found."
+                            echo "HTTP status: $NOTIF_CODE"
+                            cat /tmp/revhire-notifications.json 2>/dev/null || true
+                            exit 1
+                        fi
+
+                        echo "PASS: Notification dispatch and retrieval."
+
+                        rm -f \
+                            /tmp/revhire-ping.json \
+                            /tmp/revhire-register.json \
+                            /tmp/revhire-login.json \
+                            /tmp/revhire-me.json \
+                            /tmp/revhire-jobs.json \
+                            /tmp/revhire-employer.json \
+                            /tmp/revhire-job-create.json \
+                            /tmp/revhire-apps.json \
+                            /tmp/revhire-app-submit.json \
+                            /tmp/revhire-status.json \
+                            /tmp/revhire-notifications.json
+
+                        echo "All end-to-end integration tests completed successfully."
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit testResults: '**/target/surefire-reports/*.xml',
+                  allowEmptyResults: true
+
+            archiveArtifacts artifacts: '**/target/*.jar',
+                             allowEmptyArchive: true
+        }
+
+        failure {
+            echo 'Pipeline failed. Collecting Compose diagnostics.'
+
+            sh '''
+                docker compose -p revhire ps || true
+                docker compose -p revhire logs --tail=100 || true
+            '''
+        }
+
+        cleanup {
+            script {
+                if (env.REVHIRE_COMPOSE_STARTED == 'true') {
+                    echo 'Stopping the Compose stack started by this pipeline.'
+
+                    sh '''
+                        docker compose -p revhire down --remove-orphans || true
+                    '''
+                } else {
+                    echo 'Compose cleanup skipped because this pipeline did not start the stack.'
+                }
+            }
+        }
+    }
+}
