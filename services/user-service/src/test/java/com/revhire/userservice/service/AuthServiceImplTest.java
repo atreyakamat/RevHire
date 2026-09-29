@@ -159,4 +159,40 @@ class AuthServiceImplTest {
         assertEquals(5L, response.getUserId());
         assertEquals("JOB_SEEKER", response.getRole());
     }
+
+    @Test
+    void testRegisterUser_AdminRole_ThrowsException() {
+        UserRegistrationRequest request = new UserRegistrationRequest();
+        request.setEmail("admin@revhire.com");
+        request.setPassword("Secret123!");
+        request.setRole(Role.ADMIN);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> authService.registerUser(request));
+        assertEquals("Registration with role ADMIN is not permitted", ex.getMessage());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void testRegisterUser_NullRole_DefaultsToJobSeeker() {
+        UserRegistrationRequest request = new UserRegistrationRequest();
+        request.setEmail("default@revhire.com");
+        request.setPassword("Secret123!");
+        request.setRole(null);
+
+        when(userRepository.existsByEmail("default@revhire.com")).thenReturn(false);
+        when(passwordEncoder.encode("Secret123!")).thenReturn("encoded_pass");
+
+        User savedUser = new User("default@revhire.com", "encoded_pass", Role.JOB_SEEKER);
+        savedUser.setId(20L);
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
+        when(tokenProvider.generateToken(authentication)).thenReturn("jwt.token.here");
+
+        AuthResponse response = authService.registerUser(request);
+
+        assertNotNull(response);
+        assertEquals(Role.JOB_SEEKER, request.getRole());
+        verify(jobSeekerProfileRepository, times(1)).save(any());
+    }
 }

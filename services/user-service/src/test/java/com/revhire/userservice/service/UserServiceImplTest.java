@@ -1,5 +1,6 @@
 package com.revhire.userservice.service;
 
+import com.revhire.userservice.dto.request.ProfileUpdateRequest;
 import com.revhire.userservice.dto.response.UserProfileResponse;
 import com.revhire.userservice.entity.EmployerProfile;
 import com.revhire.userservice.entity.JobSeekerProfile;
@@ -116,5 +117,51 @@ class UserServiceImplTest {
         when(userRepository.findById(3L)).thenReturn(Optional.of(targetUser));
 
         assertThrows(AccessDeniedException.class, () -> userService.getUserProfile(3L));
+    }
+
+    @Test
+    void testUpdateUserProfile_JobSeeker_DoesNotChangeRoleOrId() {
+        User user = new User("seeker@revhire.local", "pass", Role.JOB_SEEKER);
+        user.setId(1L);
+        JobSeekerProfile profile = new JobSeekerProfile(user, "OldFirst", "OldLast", "111", null);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(jobSeekerProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
+
+        ProfileUpdateRequest updateReq = new ProfileUpdateRequest();
+        updateReq.setFirstName("NewFirst");
+        updateReq.setLastName("NewLast");
+        updateReq.setPhone("999");
+
+        UserProfileResponse response = userService.updateUserProfile(1L, updateReq);
+
+        assertNotNull(response);
+        assertEquals(1L, response.getId());
+        assertEquals(Role.JOB_SEEKER, response.getRole()); // role preserved
+        assertEquals("NewFirst", response.getFirstName());
+        assertEquals("NewLast", response.getLastName());
+        assertEquals("999", response.getPhone());
+        verify(jobSeekerProfileRepository, times(1)).save(profile);
+    }
+
+    @Test
+    void testUpdateUserRole_Success() {
+        User user = new User("user@revhire.local", "pass", Role.JOB_SEEKER);
+        user.setId(5L);
+
+        when(userRepository.findById(5L)).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        UserProfileResponse response = userService.updateUserRole(5L, Role.EMPLOYER);
+
+        assertNotNull(response);
+        assertEquals(Role.EMPLOYER, response.getRole());
+        assertEquals(Role.EMPLOYER, user.getRole());
+        verify(userRepository, times(1)).save(user);
+    }
+
+    @Test
+    void testUpdateUserRole_NullRole_ThrowsException() {
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUserRole(5L, null));
     }
 }

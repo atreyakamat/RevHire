@@ -13,6 +13,9 @@ import com.revhire.applicationservice.service.ApplicationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,13 +45,64 @@ public class ApplicationController {
         this.userClient = userClient;
     }
 
+    private Long getAuthenticatedUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Long userId) {
+            return userId;
+        }
+        return null;
+    }
+
+    private boolean isCallerAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            return auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        }
+        return false;
+    }
+
+    private boolean isCallerEmployer() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            return auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYER"));
+        }
+        return false;
+    }
+
+    private boolean isCallerJobSeeker() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            return auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_JOB_SEEKER"));
+        }
+        return false;
+    }
+
     // Submit a new application
     @PostMapping
     public ResponseEntity<ApplicationResponse> submitApplication(
             @RequestBody ApplicationRequest request) {
 
-        Application application =
-                ApplicationMapper.toEntity(request);
+        Application application = ApplicationMapper.toEntity(request);
+        Long authUserId = getAuthenticatedUserId();
+        if (authUserId != null) {
+            application.setUserId(authUserId);
+        }
+
+        if (jobClient != null && application.getJobId() != null) {
+            try {
+                JobResponse job = jobClient.getJobById(application.getJobId());
+                if (job == null) {
+                    throw new IllegalArgumentException("Job with id " + application.getJobId() + " does not exist");
+                }
+            } catch (Exception e) {
+                if (e instanceof IllegalArgumentException) {
+                    throw e;
+                }
+            }
+        }
 
         Application savedApplication =
                 applicationService.submitApplication(application);
@@ -67,6 +121,24 @@ public class ApplicationController {
         Application application =
                 applicationService.getApplicationById(id);
 
+        Long authUserId = getAuthenticatedUserId();
+        if (authUserId != null && !isCallerAdmin()) {
+            if (isCallerJobSeeker() && !application.getUserId().equals(authUserId)) {
+                throw new AccessDeniedException("You are not authorized to view this application");
+            }
+            if (isCallerEmployer() && jobClient != null) {
+                try {
+                    JobResponse job = jobClient.getJobById(application.getJobId());
+                    if (job != null && !job.getEmployerId().equals(authUserId)) {
+                        throw new AccessDeniedException("You are not authorized to view applications for another employer's job");
+                    }
+                } catch (AccessDeniedException ade) {
+                    throw ade;
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
         return ResponseEntity.ok(
                 ApplicationMapper.toResponse(application)
         );
@@ -75,6 +147,16 @@ public class ApplicationController {
     // Get all applications
     @GetMapping
     public ResponseEntity<List<ApplicationResponse>> getAllApplications() {
+
+        Long authUserId = getAuthenticatedUserId();
+        if (authUserId != null && isCallerJobSeeker() && !isCallerAdmin()) {
+            List<ApplicationResponse> responses =
+                    applicationService.getApplicationsByUser(authUserId)
+                            .stream()
+                            .map(ApplicationMapper::toResponse)
+                            .toList();
+            return ResponseEntity.ok(responses);
+        }
 
         List<ApplicationResponse> responses =
                 applicationService.getAllApplications()
@@ -90,6 +172,11 @@ public class ApplicationController {
     public ResponseEntity<List<ApplicationResponse>> getApplicationsByUser(
             @PathVariable("userId") Long userId) {
 
+        Long authUserId = getAuthenticatedUserId();
+        if (authUserId != null && !isCallerAdmin() && !authUserId.equals(userId)) {
+            throw new AccessDeniedException("You can only view your own applications");
+        }
+
         List<ApplicationResponse> responses =
                 applicationService.getApplicationsByUser(userId)
                         .stream()
@@ -104,6 +191,24 @@ public class ApplicationController {
     public ResponseEntity<List<ApplicationResponse>> getApplicationsByJob(
             @PathVariable("jobId") Long jobId) {
 
+        Long authUserId = getAuthenticatedUserId();
+        if (authUserId != null && !isCallerAdmin()) {
+            if (isCallerJobSeeker()) {
+                throw new AccessDeniedException("Job seekers cannot view applications by job");
+            }
+            if (isCallerEmployer() && jobClient != null) {
+                try {
+                    JobResponse job = jobClient.getJobById(jobId);
+                    if (job != null && !job.getEmployerId().equals(authUserId)) {
+                        throw new AccessDeniedException("You can only view applications for your own jobs");
+                    }
+                } catch (AccessDeniedException ade) {
+                    throw ade;
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
         List<ApplicationResponse> responses =
                 applicationService.getApplicationsByJob(jobId)
                         .stream()
@@ -117,6 +222,11 @@ public class ApplicationController {
     @GetMapping("/status/{status}")
     public ResponseEntity<List<ApplicationResponse>> getApplicationsByStatus(
             @PathVariable("status") ApplicationStatus status) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && !isCallerAdmin()) {
+            throw new AccessDeniedException("Only admins can view applications by status across all users");
+        }
 
         List<ApplicationResponse> responses =
                 applicationService.getApplicationsByStatus(status)
@@ -157,6 +267,20 @@ public class ApplicationController {
             @PathVariable("id") Long id,
             @RequestParam("status") ApplicationStatus status) {
 
+        Long authUserId = getAuthenticatedUserId();
+        if (authUserId != null && !isCallerAdmin() && isCallerEmployer() && jobClient != null) {
+            Application application = applicationService.getApplicationById(id);
+            try {
+                JobResponse job = jobClient.getJobById(application.getJobId());
+                if (job != null && !job.getEmployerId().equals(authUserId)) {
+                    throw new AccessDeniedException("You cannot update application status for another employer's job");
+                }
+            } catch (AccessDeniedException ade) {
+                throw ade;
+            } catch (Exception ignored) {
+            }
+        }
+
         Application application =
                 applicationService.updateApplicationStatus(id, status);
 
@@ -169,6 +293,14 @@ public class ApplicationController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteApplication(
             @PathVariable("id") Long id) {
+
+        Long authUserId = getAuthenticatedUserId();
+        if (authUserId != null && !isCallerAdmin() && isCallerJobSeeker()) {
+            Application application = applicationService.getApplicationById(id);
+            if (!application.getUserId().equals(authUserId)) {
+                throw new AccessDeniedException("You cannot withdraw another user's application");
+            }
+        }
 
         applicationService.deleteApplication(id);
 

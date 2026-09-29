@@ -1,4 +1,4 @@
-package com.revhire.resumeservice.security;
+package com.revhire.jobservice.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -60,5 +60,19 @@ public class JwtTokenProvider {
             log.debug("Invalid JWT token: {}", ex.getMessage());
             return false;
         }
+    }
+
+    public String generateToken(Long userId, String role, String email) {
+        java.util.Date now = new java.util.Date();
+        java.util.Date expiryDate = new java.util.Date(now.getTime() + 86400000);
+
+        return Jwts.builder()
+                .setSubject(Long.toString(userId))
+                .claim("role", role)
+                .claim("email", email)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey())
+                .compact();
     }
 }

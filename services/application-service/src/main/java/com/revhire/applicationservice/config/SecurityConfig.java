@@ -1,9 +1,12 @@
-package com.revhire.resumeservice.config;
+package com.revhire.applicationservice.config;
 
-import com.revhire.resumeservice.security.JwtAuthenticationEntryPoint;
-import com.revhire.resumeservice.security.JwtAuthenticationFilter;
+import com.revhire.applicationservice.security.JwtAuthenticationEntryPoint;
+import com.revhire.applicationservice.security.JwtAuthenticationFilter;
+import com.revhire.applicationservice.security.JwtTokenProvider;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -12,32 +15,34 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import java.time.Clock;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtTokenProvider tokenProvider;
 
-    public SecurityConfig(JwtAuthenticationEntryPoint unauthorizedHandler, JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationEntryPoint unauthorizedHandler, JwtTokenProvider tokenProvider) {
         this.unauthorizedHandler = unauthorizedHandler;
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.tokenProvider = tokenProvider;
     }
 
     @Bean
-    public Clock clock() {
-        return Clock.systemUTC();
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter(tokenProvider);
+    }
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
     @SuppressWarnings("java:S4502")
     public SecurityFilterChain filterChain(HttpSecurity http) {
-        // CSRF protection is safely disabled because this microservice architecture is strictly stateless
-        // (SessionCreationPolicy.STATELESS). Clients authenticate via Authorization Bearer JWT tokens in
-        // HTTP headers, and no session cookies or browser sessions are used, mitigating CSRF vulnerability.
         try {
             http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -47,14 +52,17 @@ public class SecurityConfig {
                     .requestMatchers("/error").permitAll()
                     .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                     .requestMatchers("/actuator/**").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/applications").hasRole("JOB_SEEKER")
+                    .requestMatchers(HttpMethod.PUT, "/applications/*/status").hasAnyRole("EMPLOYER", "ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/applications/*").hasAnyRole("JOB_SEEKER", "ADMIN")
                     .anyRequest().authenticated()
                 );
 
-            http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
             return http.build();
         } catch (Exception ex) {
-            throw new org.springframework.beans.factory.BeanInitializationException("Could not configure SecurityFilterChain", ex);
+            throw new org.springframework.beans.factory.BeanInitializationException("Could not configure SecurityFilterChain for application-service", ex);
         }
     }
 }

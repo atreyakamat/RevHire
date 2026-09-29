@@ -6,6 +6,8 @@ pipeline {
         SONARQUBE_ENV = "${env.SONAR_ENV ?: 'SonarQube'}"
         // Database credentials injected via Jenkins environment / credentials
         REVHIRE_DB_PASSWORD = "${env.REVHIRE_DB_PASSWORD ?: ''}"
+        // Internal service secret injected via Jenkins environment / credentials
+        INTERNAL_SERVICE_SECRET = "${env.INTERNAL_SERVICE_SECRET ?: ''}"
     }
 
     stages {
@@ -63,6 +65,12 @@ pipeline {
         stage('Docker Compose Integration Test') {
             steps {
                 sh '''
+                    # Ensure required internal secret is supplied via environment or Jenkins credentials
+                    if [ -z "$INTERNAL_SERVICE_SECRET" ]; then
+                        echo "ERROR: INTERNAL_SERVICE_SECRET is not set. It must be supplied through the environment or Jenkins credentials."
+                        exit 1
+                    fi
+
                     # Start all services using project name 'revhire'
                     docker compose -p revhire up -d
 
@@ -280,9 +288,47 @@ pipeline {
                     grep -q "content" /tmp/jobs.json || { echo "ERROR: Jobs response missing content array"; exit 1; }
                     echo "PASS: JOB-SERVICE endpoint verified (HTTP 200)"
 
+                    # Register EMPLOYER & Create Target Job for Application Testing
+                    EMP_EMAIL="emp${TIMESTAMP}@test.com"
+                    EMP_REG_PAYLOAD=$(jq -n \
+                        --arg email "$EMP_EMAIL" \
+                        --arg password "test123" \
+                        --arg role "EMPLOYER" \
+                        --arg firstName "Employer" \
+                        --arg lastName "Tester" \
+                        '{email: $email, password: $password, role: $role, firstName: $firstName, lastName: $lastName}')
+
+                    EMP_CODE=$(curl -s -o /tmp/emp_reg.json -w "%{http_code}" \
+                        -X POST "$GATEWAY_URL/api/auth/register" \
+                        -H "Content-Type: application/json" \
+                        -d "$EMP_REG_PAYLOAD")
+
+                    if [ "$EMP_CODE" != "201" ]; then
+                        echo "ERROR: Employer registration returned HTTP $EMP_CODE"
+                        cat /tmp/emp_reg.json 2>/dev/null || true
+                        exit 1
+                    fi
+                    EMP_TOKEN=$(jq -r '.token // empty' /tmp/emp_reg.json)
+
+                    JOB_PAYLOAD=$(jq -n \
+                        '{title: "Integration Test Engineer", description: "Automated test position", location: "Remote", skills: "Java, CI/CD", salary: 95000, jobType: "FULL_TIME"}')
+
+                    JOB_CREATE_CODE=$(curl -s -o /tmp/job_create.json -w "%{http_code}" -X POST "$GATEWAY_URL/api/jobs" \
+                        -H "Content-Type: application/json" \
+                        -H "Authorization: Bearer $EMP_TOKEN" \
+                        -d "$JOB_PAYLOAD")
+
+                    if [ "$JOB_CREATE_CODE" != "201" ]; then
+                        echo "ERROR: Job creation returned HTTP $JOB_CREATE_CODE"
+                        cat /tmp/job_create.json 2>/dev/null || true
+                        exit 1
+                    fi
+                    TARGET_JOB_ID=$(jq -r '.id // empty' /tmp/job_create.json)
+                    echo "PASS: Employer registered and job created with ID $TARGET_JOB_ID (HTTP 201)"
+
                     # 5. APPLICATION-SERVICE Endpoints
                     echo "5. Testing APPLICATION-SERVICE..."
-                    APPS_CODE=$(curl -s -o /tmp/apps.json -w "%{http_code}" "$GATEWAY_URL/api/applications")
+                    APPS_CODE=$(curl -s -o /tmp/apps.json -w "%{http_code}" -H "Authorization: Bearer $LOGIN_TOKEN" "$GATEWAY_URL/api/applications")
                     if [ "$APPS_CODE" != "200" ]; then
                         echo "ERROR: Applications list returned HTTP $APPS_CODE"
                         cat /tmp/apps.json 2>/dev/null || true
@@ -292,9 +338,11 @@ pipeline {
 
                     # 6. APPLICATION Submission and Status Update Workflow
                     echo "6. Testing Application Submission and Status Update..."
-                    TARGET_JOB_ID=$(jq -r '.content[0].id // empty' /tmp/jobs.json 2>/dev/null || true)
                     if [ -z "$TARGET_JOB_ID" ] || [ "$TARGET_JOB_ID" = "null" ]; then
-                        TARGET_JOB_ID=1
+                        TARGET_JOB_ID=$(jq -r '.content[0].id // empty' /tmp/jobs.json 2>/dev/null || true)
+                        if [ -z "$TARGET_JOB_ID" ] || [ "$TARGET_JOB_ID" = "null" ]; then
+                            TARGET_JOB_ID=1
+                        fi
                     fi
 
                     APP_PAYLOAD=$(jq -n --argjson jobId "$TARGET_JOB_ID" --argjson userId "$USER_ID" \
@@ -302,6 +350,7 @@ pipeline {
 
                     APP_SUB_CODE=$(curl -s -o /tmp/app_sub.json -w "%{http_code}" -X POST "$GATEWAY_URL/api/applications" \
                         -H "Content-Type: application/json" \
+                        -H "Authorization: Bearer $LOGIN_TOKEN" \
                         -d "$APP_PAYLOAD")
                     if [ "$APP_SUB_CODE" != "201" ]; then
                         echo "ERROR: Application submission returned HTTP $APP_SUB_CODE"
@@ -318,7 +367,8 @@ pipeline {
                     fi
                     echo "PASS: Application submitted successfully with ID $APP_ID (HTTP 201)"
 
-                    STATUS_CODE=$(curl -s -o /tmp/status.json -w "%{http_code}" -X PUT "$GATEWAY_URL/api/applications/$APP_ID/status?status=SHORTLISTED")
+                    STATUS_CODE=$(curl -s -o /tmp/status.json -w "%{http_code}" -X PUT "$GATEWAY_URL/api/applications/$APP_ID/status?status=SHORTLISTED" \
+                        -H "Authorization: Bearer $EMP_TOKEN")
                     if [ "$STATUS_CODE" != "200" ]; then
                         echo "ERROR: Application status update returned HTTP $STATUS_CODE"
                         cat /tmp/status.json 2>/dev/null || true
@@ -331,7 +381,7 @@ pipeline {
                     echo "7. Testing Notification Dispatch & Retrieval..."
                     NOTIF_CODE=""
                     for attempt in $(seq 1 15); do
-                        NOTIF_CODE=$(curl -s -o /tmp/notif.json -w "%{http_code}" "$GATEWAY_URL/api/notifications/user/$USER_ID")
+                        NOTIF_CODE=$(curl -s -o /tmp/notif.json -w "%{http_code}" -H "Authorization: Bearer $LOGIN_TOKEN" "$GATEWAY_URL/api/notifications/user/$USER_ID")
                         if [ "$NOTIF_CODE" = "200" ] && grep -q "APPLICATION_SHORTLISTED" /tmp/notif.json 2>/dev/null; then
                             break
                         fi
@@ -346,7 +396,7 @@ pipeline {
                     echo "PASS: Notification dispatch and retrieval verified for user $USER_ID (HTTP 200)"
 
                     # Clean up temporary response files
-                    rm -f /tmp/ping.json /tmp/reg.json /tmp/login.json /tmp/me.json /tmp/jobs.json /tmp/apps.json /tmp/app_sub.json /tmp/status.json /tmp/notif.json
+                    rm -f /tmp/ping.json /tmp/reg.json /tmp/emp_reg.json /tmp/job_create.json /tmp/login.json /tmp/me.json /tmp/jobs.json /tmp/apps.json /tmp/app_sub.json /tmp/status.json /tmp/notif.json
 
                     echo "All end-to-end integration tests completed successfully!"
                 '''

@@ -65,12 +65,18 @@ public class NotificationService {
      */
     @Transactional(readOnly = true)
     public NotificationResponse getNotificationById(Long id, Long userId) {
-        log.info("Fetching notification ID: {} for user: {}", id, userId);
+        return getNotificationById(id, userId, false);
+    }
 
-        // Verify user owns this notification
-        boolean ownsNotification = notificationRepository.notificationBelongsToUser(id, userId);
-        if (!ownsNotification) {
-            throw UnauthorizedException.userNotAllowed(userId, id);
+    @Transactional(readOnly = true)
+    public NotificationResponse getNotificationById(Long id, Long userId, boolean isAdmin) {
+        log.info("Fetching notification ID: {} for user: {} (isAdmin: {})", id, userId, isAdmin);
+
+        if (!isAdmin) {
+            boolean ownsNotification = notificationRepository.notificationBelongsToUser(id, userId);
+            if (!ownsNotification) {
+                throw UnauthorizedException.userNotAllowed(userId, id);
+            }
         }
 
         Notification notification = notificationRepository.findById(id)
@@ -110,14 +116,26 @@ public class NotificationService {
      * Mark a specific notification as read
      */
     public NotificationResponse markAsRead(Long id, Long userId) {
-        log.info("Marking notification ID: {} as read for user: {}", id, userId);
+        return markAsRead(id, userId, false);
+    }
 
-        // Verify user owns this notification
-        Notification notification = notificationRepository.findByIdAndRecipientId(id, userId)
-                .orElseThrow(() -> {
-                    log.warn("Notification not found or user not authorized: id={}, userId={}", id, userId);
-                    return UnauthorizedException.userNotAllowed(userId, id);
-                });
+    public NotificationResponse markAsRead(Long id, Long userId, boolean isAdmin) {
+        log.info("Marking notification ID: {} as read for user: {} (isAdmin: {})", id, userId, isAdmin);
+
+        Notification notification;
+        if (isAdmin) {
+            notification = notificationRepository.findById(id)
+                    .orElseThrow(() -> {
+                        log.warn("Notification not found: id={}", id);
+                        return UnauthorizedException.userNotAllowed(userId, id);
+                    });
+        } else {
+            notification = notificationRepository.findByIdAndRecipientId(id, userId)
+                    .orElseThrow(() -> {
+                        log.warn("Notification not found or user not authorized: id={}, userId={}", id, userId);
+                        return UnauthorizedException.userNotAllowed(userId, id);
+                    });
+        }
 
         // Mark as read
         notification.setIsRead(true);
@@ -147,14 +165,26 @@ public class NotificationService {
      * Delete a notification
      */
     public void deleteNotification(Long id, Long userId) {
-        log.info("Deleting notification ID: {} for user: {}", id, userId);
+        deleteNotification(id, userId, false);
+    }
 
-        // Verify user owns this notification
-        Notification notification = notificationRepository.findByIdAndRecipientId(id, userId)
-                .orElseThrow(() -> {
-                    log.warn("Notification not found or user not authorized for deletion: id={}, userId={}", id, userId);
-                    return UnauthorizedException.userNotAllowed(userId, id);
-                });
+    public void deleteNotification(Long id, Long userId, boolean isAdmin) {
+        log.info("Deleting notification ID: {} for user: {} (isAdmin: {})", id, userId, isAdmin);
+
+        Notification notification;
+        if (isAdmin) {
+            notification = notificationRepository.findById(id)
+                    .orElseThrow(() -> {
+                        log.warn("Notification not found for deletion: id={}", id);
+                        return UnauthorizedException.userNotAllowed(userId, id);
+                    });
+        } else {
+            notification = notificationRepository.findByIdAndRecipientId(id, userId)
+                    .orElseThrow(() -> {
+                        log.warn("Notification not found or user not authorized for deletion: id={}, userId={}", id, userId);
+                        return UnauthorizedException.userNotAllowed(userId, id);
+                    });
+        }
 
         notificationRepository.delete(notification);
         log.info("Notification ID: {} deleted", id);

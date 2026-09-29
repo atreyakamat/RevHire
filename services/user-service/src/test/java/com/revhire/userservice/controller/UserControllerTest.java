@@ -1,5 +1,7 @@
 package com.revhire.userservice.controller;
 
+import com.revhire.userservice.dto.request.ProfileUpdateRequest;
+import com.revhire.userservice.dto.request.RoleUpdateRequest;
 import com.revhire.userservice.dto.response.UserProfileResponse;
 import com.revhire.userservice.entity.Role;
 import com.revhire.userservice.entity.User;
@@ -124,5 +126,49 @@ class UserControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(5L, response.getBody().getId());
         verify(userService, times(1)).getUserProfile(5L);
+    }
+
+    @Test
+    void testUpdateCurrentUserProfile_Success() {
+        User user = new User("test@revhire.local", "secret", Role.JOB_SEEKER);
+        user.setId(10L);
+        CustomUserDetails userDetails = CustomUserDetails.create(user);
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        ProfileUpdateRequest updateReq = new ProfileUpdateRequest();
+        updateReq.setFirstName("Updated");
+
+        UserProfileResponse mockProfile = new UserProfileResponse();
+        mockProfile.setId(10L);
+        mockProfile.setFirstName("Updated");
+        mockProfile.setRole(Role.JOB_SEEKER);
+
+        when(userService.updateUserProfile(eq(10L), any(ProfileUpdateRequest.class))).thenReturn(mockProfile);
+
+        ResponseEntity<UserProfileResponse> response = userController.updateCurrentUserProfile(updateReq);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Updated", response.getBody().getFirstName());
+        verify(userService, times(1)).updateUserProfile(eq(10L), any(ProfileUpdateRequest.class));
+    }
+
+    @Test
+    void testUpdateUserRole_Success() {
+        RoleUpdateRequest req = new RoleUpdateRequest(Role.ADMIN);
+        UserProfileResponse mockProfile = new UserProfileResponse();
+        mockProfile.setId(15L);
+        mockProfile.setRole(Role.ADMIN);
+
+        when(userService.updateUserRole(15L, Role.ADMIN)).thenReturn(mockProfile);
+
+        ResponseEntity<UserProfileResponse> response = userController.updateUserRole(15L, req);
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(Role.ADMIN, response.getBody().getRole());
+        verify(userService, times(1)).updateUserRole(15L, Role.ADMIN);
     }
 }

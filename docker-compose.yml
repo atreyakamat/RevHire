@@ -175,6 +175,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_job?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8803/api/jobs || exit 1"]
       interval: 5s
@@ -207,8 +209,11 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_application?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET:?INTERNAL_SERVICE_SECRET must be supplied via environment or credentials}
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8804/applications || exit 1"]
+      test: ["CMD-SHELL", "wget --spider http://localhost:8804/applications 2>&1 | grep -q '401' || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -243,6 +248,9 @@ services:
       - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.H2Dialect
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_FLYWAY_ENABLED=false
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET:?INTERNAL_SERVICE_SECRET must be supplied via environment or credentials}
     healthcheck:
       test: [ "CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health || exit 1" ]
       interval: 10s
@@ -285,6 +293,8 @@ services:
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SERVER_PORT=8080
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 5s
