@@ -149,10 +149,16 @@ pipeline {
                         echo "Running integration tests on network: $NETWORK"
 
                         # Run integration test container inside the Compose network
+                        CID=$(cat /etc/hostname 2>/dev/null || hostname)
+                        if docker inspect "$CID" >/dev/null 2>&1; then
+                            MOUNT_OPT="--volumes-from ${CID}:ro -w ${WORKSPACE}"
+                        else
+                            MOUNT_OPT="-v ${WORKSPACE}:/workspace:ro -w /workspace"
+                        fi
+
                         docker run --rm \
                             --network "$NETWORK" \
-                            -v "$WORKSPACE:/workspace:ro" \
-                            -w /workspace \
+                            $MOUNT_OPT \
                             alpine:3.20 \
                             sh -ec '
                                 apk add --no-cache curl jq
