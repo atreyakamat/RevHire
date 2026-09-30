@@ -1,0 +1,207 @@
+/* RevHire Custom Stylesheet */
+:root {
+  --rh-primary: #2563eb;
+  --rh-primary-hover: #1d4ed8;
+  --rh-secondary: #475569;
+  --rh-success: #16a34a;
+  --rh-warning: #d97706;
+  --rh-danger: #dc2626;
+  --rh-dark: #0f172a;
+  --rh-light: #f8fafc;
+  --rh-border: #e2e8f0;
+  --rh-card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --rh-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #334155;
+  background-color: #f8fafc;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1 0 auto;
+}
+
+/* Navbar */
+.navbar-brand {
+  letter-spacing: -0.5px;
+}
+
+.navbar .nav-link {
+  font-weight: 500;
+  color: #475569;
+  padding: 0.5rem 0.85rem;
+  transition: color 0.15s ease-in-out;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link.active {
+  color: var(--rh-primary);
+}
+
+/* Cards */
+.card {
+  border: 1px solid var(--rh-border);
+  box-shadow: var(--rh-card-shadow);
+  border-radius: 0.75rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--rh-card-hover);
+}
+
+.stat-card {
+  border-left: 4px solid var(--rh-primary);
+}
+
+/* Hero Section */
+.hero-section {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+  padding: 5rem 0 4rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.25) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.hero-search-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  margin-top: -2.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+/* Forms */
+.form-control:focus,
+.form-select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.15);
+}
+
+.form-label {
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 0.35rem;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--rh-primary);
+  border-color: var(--rh-primary);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--rh-primary-hover);
+  border-color: var(--rh-primary-hover);
+}
+
+.btn-outline-primary {
+  color: var(--rh-primary);
+  border-color: var(--rh-primary);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--rh-primary);
+  border-color: var(--rh-primary);
+}
+
+/* Badges */
+.badge {
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+  border-radius: 0.375rem;
+}
+
+/* Notifications */
+.notification-item {
+  transition: background-color 0.15s ease;
+  border-left: 4px solid transparent;
+}
+
+.notification-item.unread {
+  background-color: #eff6ff;
+  border-left-color: var(--rh-primary);
+}
+
+.notification-item:hover {
+  background-color: #f1f5f9;
+}
+
+/* Tables */
+.table-custom {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.table-custom th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--rh-border);
+}
+
+.table-custom td {
+  padding: 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--rh-border);
+}
+
+/* Job Details */
+.job-meta-item {
+  display: flex;
+  align-items: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.job-meta-item i {
+  color: var(--rh-primary);
+  margin-right: 0.5rem;
+}
+
+/* Resume Builder dynamic rows */
+.dynamic-row {
+  background-color: #ffffff;
+  border: 1px solid var(--rh-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+/* Password Toggle Icon */
+.password-toggle-btn {
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #64748b;
+}
+
+.password-toggle-btn:hover {
+  color: var(--rh-primary);
+}
