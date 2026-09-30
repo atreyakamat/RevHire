@@ -1,0 +1,10 @@
+package com.revhire.notificationservice.enums;
+
+public enum NotificationType {
+    APPLICATION_SUBMITTED,
+    APPLICATION_UNDER_REVIEW,
+    APPLICATION_SHORTLISTED,
+    APPLICATION_REJECTED,
+    APPLICATION_SELECTED,
+    JOB_RECOMMENDATION
+}
