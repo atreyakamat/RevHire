@@ -36,6 +36,19 @@ public class JwtTokenProvider {
         return Long.parseLong(claims.getSubject());
     }
 
+    public String getRoleFromJWT(String token) {
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException("JWT token string cannot be null or empty");
+        }
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("role", String.class);
+    }
+
     public boolean validateToken(String authToken) {
         if (authToken == null || authToken.isBlank()) {
             return false;

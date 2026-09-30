@@ -46,6 +46,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse registerUser(UserRegistrationRequest request) {
+        if (request.getRole() == Role.ADMIN) {
+            throw new IllegalArgumentException("Registration with role ADMIN is not permitted");
+        }
+        if (request.getRole() == null) {
+            request.setRole(Role.JOB_SEEKER);
+        } else if (request.getRole() != Role.JOB_SEEKER && request.getRole() != Role.EMPLOYER) {
+            throw new IllegalArgumentException("Registration role must be JOB_SEEKER or EMPLOYER");
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException("Email is already registered!");
         }

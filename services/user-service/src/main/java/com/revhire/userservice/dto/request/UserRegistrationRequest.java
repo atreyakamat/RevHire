@@ -2,7 +2,6 @@ package com.revhire.userservice.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import com.revhire.userservice.entity.Role;
 import java.time.LocalDate;
@@ -17,8 +16,7 @@ public class UserRegistrationRequest {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
-    @NotNull(message = "Role is required")
-    private Role role; // Expected: JOB_SEEKER or EMPLOYER
+    private Role role = Role.JOB_SEEKER; // Defaults to JOB_SEEKER, allows EMPLOYER. ADMIN is rejected.
 
     private String phone;
 

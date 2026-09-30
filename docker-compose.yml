@@ -57,8 +57,8 @@ services:
       dockerfile: Dockerfile
     container_name: test-service
     hostname: test-service
-    ports:
-      - "8086:8086"
+    expose:
+      - "8086"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -89,8 +89,8 @@ services:
       dockerfile: Dockerfile
     container_name: user-service
     hostname: user-service
-    ports:
-      - "8801:8801"
+    expose:
+      - "8801"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -124,8 +124,8 @@ services:
       dockerfile: Dockerfile
     container_name: resume-service
     hostname: resume-service
-    ports:
-      - "8802:8802"
+    expose:
+      - "8802"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -161,8 +161,8 @@ services:
       dockerfile: Dockerfile
     container_name: job-service
     hostname: job-service
-    ports:
-      - "8803:8803"
+    expose:
+      - "8803"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -175,6 +175,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_job?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8803/api/jobs || exit 1"]
       interval: 5s
@@ -193,8 +195,8 @@ services:
       dockerfile: Dockerfile
     container_name: application-service
     hostname: application-service
-    ports:
-      - "8804:8804"
+    expose:
+      - "8804"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -207,8 +209,11 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/revhire_application?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
       - SPRING_DATASOURCE_PASSWORD=${REVHIRE_DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET:?INTERNAL_SERVICE_SECRET must be supplied via environment or credentials}
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8804/applications || exit 1"]
+      test: ["CMD-SHELL", "wget --spider http://localhost:8804/applications 2>&1 | grep -q '401' || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -225,8 +230,8 @@ services:
       dockerfile: Dockerfile
     container_name: notification-service
     hostname: notification-service
-    ports:
-      - "8085:8085"
+    expose:
+      - "8085"
     depends_on:
       eureka-server:
         condition: service_healthy
@@ -243,6 +248,9 @@ services:
       - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.H2Dialect
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_FLYWAY_ENABLED=false
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - INTERNAL_SERVICE_SECRET=${INTERNAL_SERVICE_SECRET:?INTERNAL_SERVICE_SECRET must be supplied via environment or credentials}
     healthcheck:
       test: [ "CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health || exit 1" ]
       interval: 10s
@@ -285,6 +293,8 @@ services:
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SERVER_PORT=8080
+      - JWT_SECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
+      - APP_JWTSECRET=${JWT_SECRET:-RevHireSuperSecretKeyForJwtGenerationMakeItLongEnough1234567890ABCDEF}
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 5s

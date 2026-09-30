@@ -42,7 +42,7 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    @SuppressWarnings("java:S2143") // io.jsonwebtoken 0.11.x requires java.util.Date for setIssuedAt and setExpiration
+    @SuppressWarnings({"java:S6913", "java:S2143"}) // io.jsonwebtoken 0.11.x requires java.util.Date for setIssuedAt and setExpiration
     public String generateToken(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userPrincipal)) {
             throw new IllegalArgumentException("Valid CustomUserDetails principal is required to generate JWT token");
@@ -51,12 +51,26 @@ public class JwtTokenProvider {
         Instant now = clock.instant();
         Instant expiryInstant = now.plusMillis(jwtExpirationInMs);
 
-        return Jwts.builder()
+        String role = userPrincipal.getAuthorities().stream()
+                .findFirst()
+                .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                .map(auth -> auth.startsWith("ROLE_") ? auth.substring(5) : auth)
+                .orElse(null);
+
+        var builder = Jwts.builder()
                 .setSubject(Long.toString(userPrincipal.getId()))
                 .setIssuedAt(java.util.Date.from(now))
                 .setExpiration(java.util.Date.from(expiryInstant))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
-                .compact();
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512);
+
+        if (role != null) {
+            builder.claim("role", role);
+        }
+        if (userPrincipal.getUsername() != null) {
+            builder.claim("email", userPrincipal.getUsername());
+        }
+
+        return builder.compact();
     }
 
     public Long getUserIdFromJWT(String token) {
@@ -71,6 +85,34 @@ public class JwtTokenProvider {
                 .getBody();
 
         return Long.parseLong(claims.getSubject());
+    }
+
+    public String getRoleFromJWT(String token) {
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException("JWT token string cannot be null or empty");
+        }
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .setClock(() -> java.util.Date.from(clock.instant()))
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("role", String.class);
+    }
+
+    public String getEmailFromJWT(String token) {
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException("JWT token string cannot be null or empty");
+        }
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .setClock(() -> java.util.Date.from(clock.instant()))
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("email", String.class);
     }
 
     public boolean validateToken(String authToken) {

@@ -32,6 +32,9 @@ class JobIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private com.revhire.jobservice.security.JwtTokenProvider tokenProvider;
+
     @BeforeEach
     void setUp() {
         jobRepository.deleteAll();
@@ -49,8 +52,10 @@ class JobIntegrationTest {
         request.setJobType(JobType.FULL_TIME);
         request.setEmployerId(100L);
 
+        String token = tokenProvider.generateToken(100L, "EMPLOYER", "employer100@test.com");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
 
         HttpEntity<CreateJobRequest> entity =
                 new HttpEntity<>(request, headers);
@@ -95,5 +100,32 @@ class JobIntegrationTest {
                 );
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void createJob_withSpoofedHeadersWithoutJwt_shouldReturn401() {
+        CreateJobRequest request = new CreateJobRequest();
+        request.setTitle("Spoofed Job");
+        request.setDescription("Spoofed description");
+        request.setLocation("Pune");
+        request.setSkills("Java");
+        request.setSalary(new BigDecimal("90000"));
+        request.setJobType(JobType.FULL_TIME);
+        request.setEmployerId(100L);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-User-Id", "100");
+        headers.set("X-User-Role", "EMPLOYER");
+
+        HttpEntity<CreateJobRequest> entity = new HttpEntity<>(request, headers);
+
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                "/api/jobs",
+                entity,
+                String.class
+        );
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }
 }

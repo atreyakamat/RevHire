@@ -25,7 +25,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -70,11 +69,93 @@ class NotificationControllerTest {
         when(notificationService.createNotification(any(CreateNotificationRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/notifications")
+                        .header("X-User-Id", 10L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.recipientId").value(10L));
+    }
+
+    @Test
+    void testCreateNotification_RecipientSpoofing_Forbidden() throws Exception {
+        CreateNotificationRequest request = CreateNotificationRequest.builder()
+                .recipientId(20L) // Recipient is user 20
+                .type(NotificationType.APPLICATION_SUBMITTED)
+                .channel(NotificationChannel.IN_APP)
+                .title("Spoofed Notification")
+                .message("Attacker sending notification to victim")
+                .build();
+
+        // Caller is user 10 (not recipient, not admin, not internal service)
+        mockMvc.perform(post("/api/notifications")
+                        .header("X-User-Id", 10L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    void testCreateNotification_AsAdmin_Success() throws Exception {
+        CreateNotificationRequest request = CreateNotificationRequest.builder()
+                .recipientId(20L)
+                .type(NotificationType.APPLICATION_SUBMITTED)
+                .channel(NotificationChannel.IN_APP)
+                .title("Admin Broadcast")
+                .message("System notification")
+                .build();
+
+        NotificationResponse response = NotificationResponse.builder()
+                .id(2L)
+                .recipientId(20L)
+                .title("Admin Broadcast")
+                .build();
+
+        when(notificationService.createNotification(any(CreateNotificationRequest.class))).thenReturn(response);
+
+        org.springframework.security.core.Authentication adminAuth =
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        1L, null, List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN")));
+
+        mockMvc.perform(post("/api/notifications")
+                        .principal(adminAuth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2L))
+                .andExpect(jsonPath("$.recipientId").value(20L));
+    }
+
+    @Test
+    void testCreateNotification_AsInternalService_Success() throws Exception {
+        CreateNotificationRequest request = CreateNotificationRequest.builder()
+                .recipientId(20L)
+                .type(NotificationType.APPLICATION_SUBMITTED)
+                .channel(NotificationChannel.IN_APP)
+                .title("Service Dispatch")
+                .message("Application service dispatched notification")
+                .build();
+
+        NotificationResponse response = NotificationResponse.builder()
+                .id(3L)
+                .recipientId(20L)
+                .title("Service Dispatch")
+                .build();
+
+        when(notificationService.createNotification(any(CreateNotificationRequest.class))).thenReturn(response);
+
+        org.springframework.security.core.Authentication serviceAuth =
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        "internal-service", null, List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_INTERNAL_SERVICE")));
+
+        mockMvc.perform(post("/api/notifications")
+                        .principal(serviceAuth)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(3L))
+                .andExpect(jsonPath("$.recipientId").value(20L));
     }
 
     @Test
@@ -98,7 +179,7 @@ class NotificationControllerTest {
                 .title("Test Notification")
                 .build();
 
-        when(notificationService.getNotificationById(1L, 10L)).thenReturn(response);
+        when(notificationService.getNotificationById(1L, 10L, false)).thenReturn(response);
 
         mockMvc.perform(get("/api/notifications/1")
                         .header("X-User-Id", 10L))
@@ -108,33 +189,27 @@ class NotificationControllerTest {
     }
 
     @Test
-    void testGetNotification_DefaultUserId() throws Exception {
-        NotificationResponse response = NotificationResponse.builder()
-                .id(1L)
-                .recipientId(1L)
-                .title("Fallback User Notification")
-                .build();
-
-        when(notificationService.getNotificationById(1L, 1L)).thenReturn(response);
-
+    void testGetNotification_Unauthenticated_Rejected() throws Exception {
+        // Without authentication or X-User-Id header, access is rejected (no fallback to userId=1L)
         mockMvc.perform(get("/api/notifications/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 
     @Test
     void testGetNotification_NotFound() throws Exception {
-        when(notificationService.getNotificationById(999L, 1L))
+        when(notificationService.getNotificationById(999L, 10L, false))
                 .thenThrow(NotificationNotFoundException.withId(999L));
 
-        mockMvc.perform(get("/api/notifications/999"))
+        mockMvc.perform(get("/api/notifications/999")
+                        .header("X-User-Id", 10L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
     void testGetNotification_Unauthorized() throws Exception {
-        when(notificationService.getNotificationById(1L, 2L))
+        when(notificationService.getNotificationById(1L, 2L, false))
                 .thenThrow(UnauthorizedException.userNotAllowed(2L, 1L));
 
         mockMvc.perform(get("/api/notifications/1")
@@ -155,9 +230,18 @@ class NotificationControllerTest {
 
         when(notificationService.getUserNotifications(10L, 0, 20)).thenReturn(pageResponse);
 
-        mockMvc.perform(get("/api/notifications/user/10"))
+        mockMvc.perform(get("/api/notifications/user/10")
+                        .header("X-User-Id", 10L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void testGetUserNotifications_CrossUser_Forbidden() throws Exception {
+        mockMvc.perform(get("/api/notifications/user/20")
+                        .header("X-User-Id", 10L))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 
     @Test
@@ -167,7 +251,7 @@ class NotificationControllerTest {
                 .isRead(true)
                 .build();
 
-        when(notificationService.markAsRead(1L, 10L)).thenReturn(response);
+        when(notificationService.markAsRead(1L, 10L, false)).thenReturn(response);
 
         mockMvc.perform(put("/api/notifications/1/read")
                         .header("X-User-Id", 10L))
@@ -184,14 +268,23 @@ class NotificationControllerTest {
 
         when(notificationService.markAllAsRead(10L)).thenReturn(response);
 
-        mockMvc.perform(put("/api/notifications/user/10/read"))
+        mockMvc.perform(put("/api/notifications/user/10/read")
+                        .header("X-User-Id", 10L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.updatedCount").value(3));
     }
 
     @Test
+    void testMarkAllAsRead_CrossUser_Forbidden() throws Exception {
+        mockMvc.perform(put("/api/notifications/user/20/read")
+                        .header("X-User-Id", 10L))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
     void testDeleteNotification_Success() throws Exception {
-        doNothing().when(notificationService).deleteNotification(1L, 10L);
+        doNothing().when(notificationService).deleteNotification(1L, 10L, false);
 
         mockMvc.perform(delete("/api/notifications/1")
                         .header("X-User-Id", 10L))
@@ -206,16 +299,26 @@ class NotificationControllerTest {
 
         when(notificationService.getUnreadCount(10L)).thenReturn(response);
 
-        mockMvc.perform(get("/api/notifications/user/10/unread-count"))
+        mockMvc.perform(get("/api/notifications/user/10/unread-count")
+                        .header("X-User-Id", 10L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.unreadCount").value(5L));
+    }
+
+    @Test
+    void testGetUnreadCount_CrossUser_Forbidden() throws Exception {
+        mockMvc.perform(get("/api/notifications/user/20/unread-count")
+                        .header("X-User-Id", 10L))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 
     @Test
     void testInternalServerError_Handled() throws Exception {
         when(notificationService.getUnreadCount(10L)).thenThrow(new RuntimeException("Database error"));
 
-        mockMvc.perform(get("/api/notifications/user/10/unread-count"))
+        mockMvc.perform(get("/api/notifications/user/10/unread-count")
+                        .header("X-User-Id", 10L))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.status").value(500));
     }

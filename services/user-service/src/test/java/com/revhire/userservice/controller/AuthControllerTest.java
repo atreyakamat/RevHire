@@ -82,4 +82,21 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.userId").value(2L))
                 .andExpect(jsonPath("$.role").value("EMPLOYER"));
     }
+
+    @Test
+    void testRegisterUser_AdminRole_ReturnsBadRequest() throws Exception {
+        UserRegistrationRequest request = new UserRegistrationRequest();
+        request.setEmail("admin@revhire.com");
+        request.setPassword("SecretPass123!");
+        request.setRole(Role.ADMIN);
+
+        when(authService.registerUser(any(UserRegistrationRequest.class)))
+                .thenThrow(new IllegalArgumentException("Registration with role ADMIN is not permitted"));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Registration with role ADMIN is not permitted"));
+    }
 }

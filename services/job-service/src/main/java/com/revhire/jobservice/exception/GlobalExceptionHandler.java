@@ -12,12 +12,14 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String KEY_ERROR = "error";
+
     @ExceptionHandler(JobNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleJobNotFound(
             JobNotFoundException exception) {
 
         Map<String, String> error = new HashMap<>();
-        error.put("error", exception.getMessage());
+        error.put(KEY_ERROR, exception.getMessage());
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
@@ -39,5 +41,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(errors);
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDenied(
+            org.springframework.security.access.AccessDeniedException exception) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put(KEY_ERROR, exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(error);
+    }
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<Map<String, String>> handleAuthentication(
+            org.springframework.security.core.AuthenticationException exception) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put(KEY_ERROR, exception.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(error);
     }
 }
