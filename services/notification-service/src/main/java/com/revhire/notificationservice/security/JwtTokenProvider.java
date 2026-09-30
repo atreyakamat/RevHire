@@ -65,6 +65,7 @@ public class JwtTokenProvider {
         }
     }
 
+    @SuppressWarnings({"java:S6913", "java:S2143"}) // io.jsonwebtoken 0.11.x requires java.util.Date for setIssuedAt and setExpiration
     public String generateToken(Long userId, String role, String email) {
         Instant now = Instant.now();
         Instant expiryDate = now.plus(1, ChronoUnit.DAYS);

@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@SuppressWarnings("java:S1075")
 public class SecurityConfig {
 
     private static final String PATH_JOBS_ID = "/api/jobs/{id}";

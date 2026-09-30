@@ -12,16 +12,16 @@ class TestRecordDtoTest {
     @Test
     void testTestRecordEntity() {
         LocalDateTime now = LocalDateTime.now();
-        TestRecord record = new TestRecord();
-        record.setId(1L);
-        record.setName("Entity Name");
-        record.setMessage("Entity Message");
-        record.setCreatedAt(now);
+        TestRecord entityRecord = new TestRecord();
+        entityRecord.setId(1L);
+        entityRecord.setName("Entity Name");
+        entityRecord.setMessage("Entity Message");
+        entityRecord.setCreatedAt(now);
 
-        assertEquals(1L, record.getId());
-        assertEquals("Entity Name", record.getName());
-        assertEquals("Entity Message", record.getMessage());
-        assertEquals(now, record.getCreatedAt());
+        assertEquals(1L, entityRecord.getId());
+        assertEquals("Entity Name", entityRecord.getName());
+        assertEquals("Entity Message", entityRecord.getMessage());
+        assertEquals(now, entityRecord.getCreatedAt());
 
         TestRecord r2 = new TestRecord("Name 2", "Msg 2");
         assertEquals("Name 2", r2.getName());

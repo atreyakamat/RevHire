@@ -42,7 +42,7 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
-    @SuppressWarnings("java:S2143") // io.jsonwebtoken 0.11.x requires java.util.Date for setIssuedAt and setExpiration
+    @SuppressWarnings({"java:S6913", "java:S2143"}) // io.jsonwebtoken 0.11.x requires java.util.Date for setIssuedAt and setExpiration
     public String generateToken(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails userPrincipal)) {
             throw new IllegalArgumentException("Valid CustomUserDetails principal is required to generate JWT token");

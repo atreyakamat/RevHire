@@ -8,7 +8,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,8 +25,8 @@ class TestRecordServiceTest {
 
     @Test
     void testGetAllRecords() {
-        TestRecord record = new TestRecord("Test 1", "Message 1");
-        when(testRecordRepository.findAll()).thenReturn(List.of(record));
+        TestRecord testRecord = new TestRecord("Test 1", "Message 1");
+        when(testRecordRepository.findAll()).thenReturn(List.of(testRecord));
 
         List<TestRecord> records = testRecordService.getAllRecords();
         assertEquals(1, records.size());
@@ -36,9 +35,9 @@ class TestRecordServiceTest {
 
     @Test
     void testGetRecordById() {
-        TestRecord record = new TestRecord("Test 1", "Message 1");
-        record.setId(10L);
-        when(testRecordRepository.findById(10L)).thenReturn(Optional.of(record));
+        TestRecord testRecord = new TestRecord("Test 1", "Message 1");
+        testRecord.setId(10L);
+        when(testRecordRepository.findById(10L)).thenReturn(Optional.of(testRecord));
 
         Optional<TestRecord> result = testRecordService.getRecordById(10L);
         assertTrue(result.isPresent());
@@ -47,14 +46,14 @@ class TestRecordServiceTest {
 
     @Test
     void testCreateRecord() {
-        TestRecord record = new TestRecord("Test 1", "Message 1");
+        TestRecord testRecord = new TestRecord("Test 1", "Message 1");
         when(testRecordRepository.save(any(TestRecord.class))).thenAnswer(i -> {
             TestRecord saved = i.getArgument(0);
             saved.setId(1L);
             return saved;
         });
 
-        TestRecord created = testRecordService.createRecord(record);
+        TestRecord created = testRecordService.createRecord(testRecord);
         assertNotNull(created.getId());
         assertNotNull(created.getCreatedAt());
         assertEquals("Test 1", created.getName());
