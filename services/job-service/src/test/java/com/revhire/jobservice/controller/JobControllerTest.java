@@ -30,7 +30,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import com.revhire.jobservice.security.JwtTokenProvider;
+
 @WebMvcTest(JobController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
 class JobControllerTest {
 
@@ -42,6 +46,9 @@ class JobControllerTest {
 
     @MockitoBean
     private JobService jobService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     private JobResponse createResponse() {
 

@@ -8,5 +8,6 @@ class ConfigServerApplicationTests {
 
     @Test
     void contextLoads() {
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(ConfigServerApplication::new);
     }
 }

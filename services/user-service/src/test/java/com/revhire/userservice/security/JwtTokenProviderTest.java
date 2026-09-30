@@ -40,6 +40,8 @@ class JwtTokenProviderTest {
         assertNotNull(token);
         assertTrue(tokenProvider.validateToken(token));
         assertEquals(42L, tokenProvider.getUserIdFromJWT(token));
+        assertEquals("JOB_SEEKER", tokenProvider.getRoleFromJWT(token));
+        assertEquals("jwtuser@revhire.local", tokenProvider.getEmailFromJWT(token));
     }
 
     @Test

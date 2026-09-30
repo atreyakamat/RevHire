@@ -38,6 +38,8 @@ class ApplicationControllerTest {
         ApplicationController controller =
                 new ApplicationController(applicationService, jobClient);
 
+        lenient().when(jobClient.getJobById(any())).thenReturn(new com.revhire.applicationservice.dto.response.JobResponse());
+
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
                 .build();

@@ -12,6 +12,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -26,9 +29,31 @@ public class JobController {
         this.jobService = jobService;
     }
 
+    private Long getAuthenticatedUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof Long userId) {
+            return userId;
+        }
+        return null;
+    }
+
+    private boolean isCallerAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            return auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        }
+        return false;
+    }
+
     @PostMapping
     public ResponseEntity<JobResponse> createJob(
             @Valid @RequestBody CreateJobRequest request) {
+
+        Long employerId = getAuthenticatedUserId();
+        if (employerId != null) {
+            request.setEmployerId(employerId);
+        }
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -73,6 +98,14 @@ public class JobController {
             @PathVariable("id") Long id,
             @Valid @RequestBody UpdateJobRequest request) {
 
+        Long authenticatedUserId = getAuthenticatedUserId();
+        if (authenticatedUserId != null) {
+            JobResponse existingJob = jobService.getJobById(id);
+            if (!isCallerAdmin() && !existingJob.getEmployerId().equals(authenticatedUserId)) {
+                throw new AccessDeniedException("You are not authorized to update this job");
+            }
+        }
+
         return ResponseEntity.ok(
                 jobService.updateJob(id, request)
         );
@@ -81,6 +114,14 @@ public class JobController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteJob(
             @PathVariable("id") Long id) {
+
+        Long authenticatedUserId = getAuthenticatedUserId();
+        if (authenticatedUserId != null) {
+            JobResponse existingJob = jobService.getJobById(id);
+            if (!isCallerAdmin() && !existingJob.getEmployerId().equals(authenticatedUserId)) {
+                throw new AccessDeniedException("You are not authorized to delete this job");
+            }
+        }
 
         jobService.deleteJob(id);
 
@@ -92,6 +133,11 @@ public class JobController {
             @PathVariable("employerId") Long employerId,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size) {
+
+        Long authenticatedUserId = getAuthenticatedUserId();
+        if (authenticatedUserId != null && !isCallerAdmin() && !employerId.equals(authenticatedUserId)) {
+            throw new AccessDeniedException("You can only view your own employer job postings");
+        }
 
         Pageable pageable = PageRequest.of(page, size);
 
