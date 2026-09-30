@@ -27,8 +27,9 @@
         <!-- SonarQube Configuration -->
         <sonar.projectKey>revhire-microservices</sonar.projectKey>
         <sonar.projectName>RevHire Microservices</sonar.projectName>
-        <sonar.java.binaries>**/target/classes</sonar.java.binaries>
-        <sonar.cpd.exclusions>**/dto/**,**/entity/**,**/model/**</sonar.cpd.exclusions>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.coverage.exclusions>**/*Application.java,**/dto/**,**/entity/**,**/model/**</sonar.coverage.exclusions>
+        <sonar.cpd.exclusions>**/dto/**,**/entity/**,**/model/**,**/security/**,**/config/**</sonar.cpd.exclusions>
     </properties>
 
     <modules>

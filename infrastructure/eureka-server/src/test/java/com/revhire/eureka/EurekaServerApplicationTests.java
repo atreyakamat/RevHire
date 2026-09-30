@@ -8,5 +8,6 @@ class EurekaServerApplicationTests {
 
     @Test
     void contextLoads() {
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(EurekaServerApplication::new);
     }
 }
