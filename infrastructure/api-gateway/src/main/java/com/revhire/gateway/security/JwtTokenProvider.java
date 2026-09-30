@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
@@ -95,7 +94,6 @@ public class JwtTokenProvider {
         return false;
     }
 
-    @SuppressWarnings({"java:S6913", "java:S2143"}) // io.jsonwebtoken 0.11.x requires java.util.Date for setIssuedAt and setExpiration
     public String generateToken(Long userId, String role, String email) {
         Instant now = Instant.now();
         Instant expiryDate = now.plus(1, ChronoUnit.DAYS);
@@ -104,8 +102,8 @@ public class JwtTokenProvider {
                 .setSubject(Long.toString(userId))
                 .claim("role", role)
                 .claim("email", email)
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(expiryDate))
+                .claim(Claims.ISSUED_AT, now.getEpochSecond())
+                .claim(Claims.EXPIRATION, expiryDate.getEpochSecond())
                 .signWith(getSigningKey())
                 .compact();
     }
